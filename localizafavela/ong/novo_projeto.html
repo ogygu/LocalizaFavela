@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Publicar projeto — Painel da ONG</title>
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/reset.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/pages.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="../index.html"><svg class="pin" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>Localiza<em>Favela</em></a>
+      <nav class="nav-desktop"><a href="projetos.html">Meus projetos</a><button type="button" class="btn btn-secondary btn-sm" id="btnSair">Sair</button></nav>
+    </div>
+  </header>
+
+  <main id="conteudo" class="container">
+    <div class="dash-shell">
+      <aside class="dash-side"><nav class="side-nav" aria-label="Menu da ONG">
+        <a href="dashboard.html">🏠 Visão geral</a>
+        <a href="projetos.html">📣 Meus projetos</a>
+        <a href="novo_projeto.html" aria-current="page">➕ Publicar projeto</a>
+        <a href="triagem.html">🗂️ Triagem de inscrições</a>
+        <a href="galeria.html">🖼️ Galeria de fotos</a>
+        <a href="perfil_ong.html">🏢 Perfil da ONG</a>
+      </nav></aside>
+
+      <section class="dash-main">
+        <h1 class="section-title" style="font-size:var(--fs-xl)">Publicar novo projeto social</h1>
+        <p class="lead" style="font-size:var(--fs-sm);margin-bottom:var(--sp-5)">Passo 1: dados do projeto. Passo 2 (abaixo): perguntas do processo seletivo.</p>
+
+        <form id="formProjeto" novalidate>
+          <!-- PASSO 1 -->
+          <fieldset class="card" style="padding:var(--sp-5);margin-bottom:var(--sp-5)">
+            <legend style="font-family:var(--font-display);font-weight:600;padding-inline:var(--sp-2)">1 · Dados do projeto</legend>
+
+            <div class="field">
+              <label for="np_titulo">Título do projeto *</label>
+              <input class="input" type="text" id="np_titulo" maxlength="120" placeholder="Ex.: Reforço Escolar de Bairro" required />
+              <span class="error-msg">Informe um título com pelo menos 5 caracteres.</span>
+            </div>
+
+            <div class="field">
+              <label for="np_descricao">Descrição *</label>
+              <textarea class="textarea" id="np_descricao" rows="5" maxlength="2000" placeholder="O que fazemos, onde atuamos, o que esperamos dos voluntários…" required></textarea>
+              <span class="hint">Mínimo de 40 caracteres. Esse texto aparece no card público.</span>
+              <span class="error-msg">Descreva o projeto com pelo menos 40 caracteres.</span>
+            </div>
+
+            <div class="form-row cols-3">
+              <div class="field">
+                <label for="np_area">Área de atuação *</label>
+                <select class="select" id="np_area" required>
+                  <option value="" disabled selected>Selecione…</option>
+                  <option>Educação</option><option>Saúde</option><option>Assistência Social</option>
+                  <option>Cultura</option><option>Esporte</option><option>Meio Ambiente</option>
+                  <option>Direitos Humanos</option><option>Geração de Renda</option><option>Outros</option>
+                </select>
+                <span class="error-msg">Selecione a área.</span>
+              </div>
+              <div class="field">
+                <label for="np_vagas">Nº de vagas *</label>
+                <input class="input" type="number" id="np_vagas" min="1" max="9999" value="10" required />
+                <span class="error-msg">Entre 1 e 9999 vagas.</span>
+              </div>
+              <div class="field">
+                <label for="np_prazo">Prazo de inscrição</label>
+                <input class="input" type="date" id="np_prazo" />
+                <span class="hint">Opcional — deixe vazio para seleção contínua.</span>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- PASSO 2: BUILDER DE FORMULÁRIO DINÂMICO -->
+          <fieldset class="card" style="padding:var(--sp-5);margin-bottom:var(--sp-5)">
+            <legend style="font-family:var(--font-display);font-weight:600;padding-inline:var(--sp-2)">2 · Perguntas da inscrição</legend>
+            <p class="hint" style="margin-bottom:var(--sp-4)">Monte o formulário que os candidatos verão. Nome, WhatsApp, e-mail e endereço já vêm do perfil — pergunte só o que importa para a sua seleção.</p>
+
+            <div id="builderCampos" style="display:flex;flex-direction:column;gap:var(--sp-3)"></div>
+
+            <div class="form-row" style="grid-template-columns:1fr auto auto;align-items:end;margin-top:var(--sp-4);gap:var(--sp-2)">
+              <div class="field" style="margin:0">
+                <label for="np_tiponovo">Tipo de pergunta</label>
+                <select class="select" id="np_tiponovo">
+                  <option value="text">Resposta curta</option>
+                  <option value="textarea">Texto longo</option>
+                  <option value="number">Número</option>
+                  <option value="date">Data</option>
+                  <option value="select">Lista (dropdown)</option>
+                  <option value="radio">Escolha única</option>
+                  <option value="checkbox">Caixa de seleção (sim/não)</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-secondary" id="btnAddCampo">+ Adicionar</button>
+            </div>
+          </fieldset>
+
+          <button type="submit" class="btn btn-primary btn-block" id="btnPublicar">Publicar projeto 🚀</button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <script src="../js/config/supabase.js"></script>
+  <script type="module" src="../js/pages/novo_projeto.js"></script>
+</body>
+</html>

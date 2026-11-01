@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meu perfil — LocalizaFavela</title>
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/reset.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/pages.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="../index.html"><svg class="pin" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>Localiza<em>Favela</em></a>
+      <nav class="nav-desktop"><a href="projetos.html">Explorar projetos</a><button type="button" class="btn btn-secondary btn-sm" id="btnSair">Sair</button></nav>
+    </div>
+  </header>
+
+  <main id="conteudo" class="container">
+    <div class="dash-shell">
+      <aside class="dash-side"><nav class="side-nav" aria-label="Menu do painel">
+        <a href="dashboard.html">🏠 Início</a>
+        <a href="projetos.html">📍 Projetos perto de mim</a>
+        <a href="inscricoes.html">📋 Minhas inscrições</a>
+        <a href="perfil.html" aria-current="page">🙂 Meu perfil</a>
+      </nav></aside>
+
+      <section class="dash-main">
+        <div class="profile-head">
+          <img class="avatar avatar-lg" id="fotoAtual" alt="Sua foto de perfil" hidden />
+          <span class="avatar avatar-lg avatar-initials" id="iniciais" style="width:96px;height:96px;font-size:var(--fs-xl)" aria-hidden="true"></span>
+          <div>
+            <h1 class="section-title" style="font-size:var(--fs-xl)" id="nomeHeader">Meu perfil</h1>
+            <p class="card-meta" id="docInfo">…</p>
+          </div>
+        </div>
+
+        <form class="auth-card" id="formPerfil" style="width:100%;padding:var(--sp-5)" novalidate>
+          <div class="field">
+            <label for="p_foto">Foto de perfil (JPG/PNG/WebP, máx. 2 MB)</label>
+            <input class="input" type="file" id="p_foto" accept="image/jpeg,image/png,image/webp" style="padding:var(--sp-2)" />
+            <span class="upload-hint">Mostramos sua foto apenas para as ONGs nas quais você se inscreve (LGPD — minimização).</span>
+          </div>
+
+          <div class="field">
+            <label for="p_whatsapp">WhatsApp</label>
+            <input class="input" type="tel" id="p_whatsapp" inputmode="numeric" placeholder="(11) 98765-4321" />
+            <span class="hint">É por aqui que a ONG te chama quando você é aprovado(a). Mantenha atualizado!</span>
+            <span class="error-msg">WhatsApp inválido.</span>
+          </div>
+
+          <div class="field">
+            <label for="p_rede">Rede social (opcional)</label>
+            <input class="input" type="text" id="p_rede" placeholder="@seuperfil ou link do Instagram" />
+          </div>
+
+          <div class="field">
+            <label for="p_bio">Bio <span style="font-weight:400;color:var(--text-secondary)">(<span id="bioContador">0</span>/300)</span></label>
+            <textarea class="textarea" id="p_bio" rows="3" maxlength="300" placeholder="Conte brevemente suas áreas de interesse e disponibilidade…"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="btnSalvarPerfil">Salvar alterações</button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <script src="../js/config/supabase.js"></script>
+  <script type="module" src="../js/pages/perfil_usuario.js"></script>
+</body>
+</html>

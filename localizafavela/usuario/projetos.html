@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Projetos sociais perto de você — LocalizaFavela</title>
+  <meta name="description" content="Explore projetos sociais e ONGs por estado, cidade e bairro. Inscreva-se em processos seletivos de voluntariado." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/reset.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/pages.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="../index.html" aria-label="LocalizaFavela — página inicial">
+        <svg class="pin" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/>
+        </svg>
+        Localiza<em>Favela</em>
+      </a>
+      <nav class="nav-desktop" aria-label="Navegação principal">
+        <a href="dashboard.html">Meu painel</a>
+        <a href="inscricoes.html">Minhas inscrições</a>
+        <a href="perfil.html">Perfil</a>
+        <button type="button" class="btn btn-secondary btn-sm" id="btnSair">Sair</button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="conteudo" class="container" style="padding-block:var(--sp-6)">
+    <div class="welcome-strip">
+      <div>
+        <h1>Projetos perto de você</h1>
+        <p class="localizacao" id="minhaRegiao">Filtrando por toda a rede…</p>
+      </div>
+    </div>
+
+    <!-- FILTROS: Estado / Cidade / Bairro (requisito da Fase 3 do enunciado) -->
+    <section class="filter-bar" aria-label="Filtros de localização" style="margin-bottom:var(--sp-5)">
+      <div class="field" style="margin:0">
+        <label for="fEstado">Estado</label>
+        <select class="select" id="fEstado"><option value="">Todos</option></select>
+      </div>
+      <div class="field" style="margin:0">
+        <label for="fCidade">Cidade</label>
+        <input class="input" type="text" id="fCidade" placeholder="Ex.: São Paulo" />
+      </div>
+      <div class="field" style="margin:0">
+        <label for="fBairro">Bairro</label>
+        <input class="input" type="text" id="fBairro" placeholder="Ex.: Vila Nova" />
+      </div>
+      <button type="button" class="btn btn-secondary" id="btnLimpar">Limpar</button>
+      <div class="field" style="margin:0;grid-column:1/-1">
+        <label for="fBusca">Buscar por palavra</label>
+        <input class="input" type="search" id="fBusca" placeholder="Reforço escolar, saúde da família, cultura periférica…" />
+      </div>
+    </section>
+
+    <p class="card-meta" id="feedContagem" aria-live="polite" style="margin-bottom:var(--sp-4)"></p>
+    <div class="card-grid" id="gradeProjetos"></div>
+
+    <div style="text-align:center;margin-top:var(--sp-6)">
+      <button type="button" class="btn btn-secondary" id="btnCarregarMais" style="display:none">Ver mais projetos</button>
+    </div>
+  </main>
+
+  <!-- MODAL DE INSCRIÇÃO (formulário dinâmico da ONG) -->
+  <div class="modal-backdrop" id="modalInscricao" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="modalTitulo" style="font-size:var(--fs-lg)">Inscrição</h2>
+        <button type="button" class="modal-close" id="modalFechar" aria-label="Fechar formulário">×</button>
+      </div>
+      <div id="modalCorpo"></div>
+    </div>
+  </div>
+
+  <script src="../js/config/supabase.js"></script>
+  <script type="module">
+    import { sair } from '../js/core/auth.js';
+    document.getElementById('btnSair').addEventListener('click', sair);
+  </script>
+  <script type="module" src="../js/pages/projetos.js"></script>
+</body>
+</html>

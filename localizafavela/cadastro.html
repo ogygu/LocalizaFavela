@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Criar conta — LocalizaFavela</title>
+  <meta name="description" content="Cadastre-se no LocalizaFavela: fluxo Usuário (CPF) ou fluxo ONG (CPF/CNPJ). Gratuito, alinhado às ODS 10 e 11." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/pages.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="index.html" aria-label="LocalizaFavela — página inicial">
+        <svg class="pin" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/>
+        </svg>
+        Localiza<em>Favela</em>
+      </a>
+      <nav class="nav-desktop" aria-label="Navegação principal">
+        <a href="login.html">Já tenho conta</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="conteudo" class="auth-shell">
+    <div class="auth-card auth-card--wide">
+
+      <div class="auth-head">
+        <h1>Crie sua conta</h1>
+        <p class="lead" style="font-size:var(--fs-sm)">Escolha o seu fluxo. É gratuito e leva menos de 2 minutos.</p>
+        <div class="segmented" role="group" aria-label="Tipo de conta">
+          <button type="button" id="tabUsuario" aria-pressed="true">Sou Cidadão(ã)</button>
+          <button type="button" id="tabOng" aria-pressed="false">Sou uma ONG</button>
+        </div>
+      </div>
+
+      <div class="form-feedback" id="cadErro" role="alert"></div>
+      <div class="form-feedback form-feedback--ok" id="cadOk" role="status"></div>
+
+      <!-- ================= FORM USUÁRIO ================= -->
+      <form id="formUsuario" novalidate>
+        <div class="field">
+          <label for="u_nome">Nome completo *</label>
+          <input class="input" type="text" id="u_nome" autocomplete="name" placeholder="Maria Aparecida da Silva" required />
+          <span class="error-msg">Informe seu nome completo (nome e sobrenome).</span>
+        </div>
+
+        <div class="form-row cols-2">
+          <div class="field">
+            <label for="u_whatsapp">WhatsApp *</label>
+            <input class="input" type="tel" id="u_whatsapp" inputmode="numeric" autocomplete="tel-national" placeholder="(11) 98765-4321" required />
+            <span class="error-msg">WhatsApp inválido. Use DDD + número.</span>
+          </div>
+          <div class="field">
+            <label for="u_cpf">CPF *</label>
+            <input class="input" type="text" id="u_cpf" inputmode="numeric" placeholder="000.000.000-00" required />
+            <span class="hint">Será a sua chave de acesso junto com a senha.</span>
+            <span class="error-msg">CPF inválido (verifique os dígitos).</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="u_email">E-mail *</label>
+          <input class="input" type="email" id="u_email" autocomplete="email" placeholder="voce@email.com" required />
+          <span class="hint">Usado apenas para recuperação de acesso e confirmação de cadastro.</span>
+          <span class="error-msg">E-mail inválido.</span>
+        </div>
+
+        <div class="field">
+          <label for="u_rede">Rede social <em style="font-style:normal;color:var(--text-secondary);font-weight:400">(opcional)</em></label>
+          <input class="input" type="text" id="u_rede" placeholder="@seuperfil ou https://instagram.com/..." />
+        </div>
+
+        <div class="field">
+          <label for="u_cep">CEP *</label>
+          <div class="cep-row">
+            <input class="input" type="text" id="u_cep" inputmode="numeric" placeholder="00000-000" maxlength="9" required />
+            <span class="hint" id="u_cepStatus" aria-live="polite"></span>
+          </div>
+          <span class="hint">Preenchemos estado, cidade e bairro automaticamente.</span>
+          <span class="error-msg">CEP inválido.</span>
+        </div>
+
+        <div class="form-row cols-3">
+          <div class="field">
+            <label for="u_estado">Estado *</label>
+            <select class="select" id="u_estado" required></select>
+            <span class="error-msg">Selecione o estado.</span>
+          </div>
+          <div class="field">
+            <label for="u_cidade">Cidade *</label>
+            <input class="input" type="text" id="u_cidade" placeholder="São Paulo" required />
+            <span class="error-msg">Informe a cidade.</span>
+          </div>
+          <div class="field">
+            <label for="u_bairro">Bairro *</label>
+            <input class="input" type="text" id="u_bairro" placeholder="Vila Madalena" required />
+            <span class="error-msg">Informe o bairro.</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="u_senha">Senha forte *</label>
+          <div class="senha-wrap">
+            <input class="input" type="password" id="u_senha" autocomplete="new-password" placeholder="Mín. 8 caracteres" required />
+            <button type="button" class="senha-toggle" data-alvo="u_senha" aria-label="Mostrar senha">mostrar</button>
+          </div>
+          <div class="pw-meter lv0" id="u_pwMeter" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+          <span class="hint" id="u_pwHint">Use maiúscula, minúscula, número e símbolo (ex.: Comunidade#2026).</span>
+          <span class="error-msg">Senha fraca: atenda aos 4 requisitos acima.</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="btnCadUsuario">Criar minha conta</button>
+      </form>
+
+      <!-- ================= FORM ONG ================= -->
+      <form id="formOng" novalidate hidden>
+        <div class="field">
+          <label for="o_nome">Nome da ONG / Projeto Social *</label>
+          <input class="input" type="text" id="o_nome" placeholder="Instituto Mãos que Constroem" required />
+          <span class="error-msg">Informe o nome da organização.</span>
+        </div>
+
+        <div class="form-row cols-2">
+          <div class="field">
+            <label for="o_telefone">Telefone *</label>
+            <input class="input" type="tel" id="o_telefone" inputmode="numeric" placeholder="(11) 3456-7890" required />
+            <span class="error-msg">Telefone inválido. Use DDD + número.</span>
+          </div>
+          <div class="field">
+            <label for="o_documento">CPF ou CNPJ *</label>
+            <input class="input" type="text" id="o_documento" inputmode="numeric" placeholder="00.000.000/0000-00" required />
+            <span class="hint">Será a chave de acesso da ONG (login por documento).</span>
+            <span class="error-msg">Documento inválido (verifique os dígitos).</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="o_email">E-mail institucional *</label>
+          <input class="input" type="email" id="o_email" autocomplete="email" placeholder="contato@suaong.org.br" required />
+          <span class="hint">Necessário para confirmação de conta e notificações do sistema.</span>
+          <span class="error-msg">E-mail inválido.</span>
+        </div>
+
+        <div class="field">
+          <label for="o_rede">Rede social <em style="font-style:normal;color:var(--text-secondary);font-weight:400">(opcional)</em></label>
+          <input class="input" type="text" id="o_rede" placeholder="@suaong ou https://instagram.com/..." />
+        </div>
+
+        <div class="field">
+          <label for="o_cep">CEP da sede *</label>
+          <div class="cep-row">
+            <input class="input" type="text" id="o_cep" inputmode="numeric" placeholder="00000-000" maxlength="9" required />
+            <span class="hint" id="o_cepStatus" aria-live="polite"></span>
+          </div>
+          <span class="error-msg">CEP inválido.</span>
+        </div>
+
+        <div class="form-row cols-3">
+          <div class="field">
+            <label for="o_estado">Estado *</label>
+            <select class="select" id="o_estado" required></select>
+            <span class="error-msg">Selecione o estado.</span>
+          </div>
+          <div class="field">
+            <label for="o_cidade">Cidade *</label>
+            <input class="input" type="text" id="o_cidade" required />
+            <span class="error-msg">Informe a cidade.</span>
+          </div>
+          <div class="field">
+            <label for="o_bairro">Bairro *</label>
+            <input class="input" type="text" id="o_bairro" required />
+            <span class="error-msg">Informe o bairro.</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="o_finalidade">Finalidade da ONG *</label>
+          <textarea class="textarea" id="o_finalidade" rows="4" placeholder="Ex.: Oferta de reforço escolar e formação cidadã para jovens de 12 a 18 anos na zona leste…" required></textarea>
+          <span class="hint">Mínimo de 20 caracteres. Essa descrição aparece na sua vitrine pública.</span>
+          <span class="error-msg">Descreva a finalidade com pelo menos 20 caracteres.</span>
+        </div>
+
+        <div class="field">
+          <label for="o_publico">Público-alvo <em style="font-style:normal;color:var(--text-secondary);font-weight:400">(opcional)</em></label>
+          <input class="input" type="text" id="o_publico" placeholder="Ex.: Jovens e famílias em situação de vulnerabilidade" />
+        </div>
+
+        <div class="field">
+          <label for="o_senha">Senha forte *</label>
+          <div class="senha-wrap">
+            <input class="input" type="password" id="o_senha" autocomplete="new-password" placeholder="Mín. 8 caracteres" required />
+            <button type="button" class="senha-toggle" data-alvo="o_senha" aria-label="Mostrar senha">mostrar</button>
+          </div>
+          <div class="pw-meter lv0" id="o_pwMeter" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+          <span class="hint">Use maiúscula, minúscula, número e símbolo.</span>
+          <span class="error-msg">Senha fraca: atenda aos 4 requisitos.</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="btnCadOng">Cadastrar minha ONG</button>
+      </form>
+
+      <p class="auth-alt">
+        Já tem conta? <a href="login.html">Entrar</a> ·
+        <a href="index.html#manifesto">Leia nosso manifesto</a>
+      </p>
+    </div>
+  </main>
+
+  <script src="js/config/supabase.js"></script>
+  <script type="module" src="js/pages/cadastro.js"></script>
+</body>
+</html>
