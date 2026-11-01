@@ -14,7 +14,7 @@ import { cpfValido, documentoValido, senhaForte, whatsappValido, cepValido, emai
 const sb = window.LF_SUPABASE;
 
 /** Cadastro de USUÁRIO COMUM. payload vem do formulário da página. */
-export async function cadastrarUsuario({ nome, whatsapp, cpf, email, redeSocial, cep, estado, cidade, bairro, senha }) {
+export async function cadastrarUsuario({ nome, whatsapp, cpf, email, redeSocial, cep, estado, cidade, bairro, senha }) { // eslint-disable-line no-unused-vars
   if (!nome || nome.trim().split(/\s+/).length < 2) throw new Error('Informe seu nome completo.');
   if (!whatsappValido(whatsapp)) throw new Error('WhatsApp inválido. Use DDD + número.');
   if (!cpfValido(cpf)) throw new Error('CPF inválido (verifique os dígitos).');
@@ -43,19 +43,20 @@ export async function cadastrarUsuario({ nome, whatsapp, cpf, email, redeSocial,
   return true;
 }
 
-/** Cadastro de ONG. documento = CPF ou CNPJ. */
-export async function cadastrarONG({ nomeOng, telefone, redeSocial, documento, cep, estado, cidade, bairro, finalidade, publicoAlvo, senha }) {
+/** Cadastro de ONG. documento = CPF ou CNPJ. email institucional é obrigatório. */
+export async function cadastrarONG({ nomeOng, telefone, email, redeSocial, documento, cep, estado, cidade, bairro, finalidade, publicoAlvo, senha }) { // eslint-disable-line no-unused-vars
   if (!nomeOng || nomeOng.trim().length < 3) throw new Error('Informe o nome da ONG.');
   if (!whatsappValido(telefone)) throw new Error('Telefone inválido.');
   if (!documentoValido(documento)) throw new Error('CPF/CNPJ inválido.');
+  if (!emailValido(email)) throw new Error('E-mail institucional inválido.');
   if (!cepValido(cep)) throw new Error('CEP inválido.');
   if (!finalidade || finalidade.trim().length < 20) throw new Error('Descreva a finalidade da ONG (mín. 20 caracteres).');
   if (!senhaForte(senha)) throw new Error('Senha fraca: use 8+ caracteres, maiúscula, minúscula, número e símbolo.');
 
-  // ONG também precisa de um email técnico para o Supabase Auth.
-  // Estratégia PIE: email gerado a partir do documento + domínio gerenciado,
-  // OU campo extra de email coletado no formulário. Aqui usamos campo opcional.
-  const emailOng = gerarEmailTecnicoONG(documento);
+  // O Supabase Auth autentica por e-mail: usamos o e-mail institucional
+  // informado pela ONG. O LOGIN por CPF/CNPJ é resolvido via RPC fn_resolve_login
+  // (ver 02_Supabase_Database.sql — seção 5.4), que mapeia documento → email real.
+  const emailOng = email.trim().toLowerCase();
 
   const { error } = await sb.auth.signUp({
     email: emailOng,
@@ -80,16 +81,12 @@ export async function cadastrarONG({ nomeOng, telefone, redeSocial, documento, c
   return true;
 }
 
-function gerarEmailTecnicoONG(documento) {
-  const d = soDigitos(documento);
-  const dom = d.length === 14 ? 'ongs.localizafavela.app' : 'ongpf.localizafavela.app';
-  return `ong.${d}@${dom}`; // único por documento; domínio verificado no Supabase
-}
-
 /**
  * LOGIN por documento + senha.
- * 1) Tenta resolver documento → email via RPC (requer view/função da Fase 4).
- * 2) Se a RPC ainda não existir, aceita email diretamente.
+ * O Supabase Auth autentica por e-mail, então resolvemos documento → e-mail
+ * via RPC `fn_resolve_login` (SECURITY DEFINER, criada no 02_Supabase_Database.sql,
+ * seção 5). Ela devolve apenas o e-mail — nunca outros dados pessoais (LGPD).
+ * Fallback: o usuário/ONG também pode digitar o próprio e-mail.
  */
 export async function entrar({ documento, senha, tipo }) {
   const identificador = documento.trim().toLowerCase();
@@ -99,13 +96,14 @@ export async function entrar({ documento, senha, tipo }) {
     const d = soDigitos(identificador);
     if (tipo === 'usuario' && !cpfValido(d)) throw new Error('CPF inválido.');
     if (tipo === 'ong' && !documentoValido(d)) throw new Error('CPF/CNPJ inválido.');
-    try {
-      const { data, error: rpcErr } = await sb.rpc('fn_resolve_login', { p_documento: d });
-      if (!rpcErr && data) email = data;
-      else email = tipo === 'ong' ? gerarEmailTecnicoONG(d) : d; // fallback heurístico
-    } catch {
-      email = tipo === 'ong' ? gerarEmailTecnicoONG(d) : d;
+
+    const { data, error: rpcErr } = await sb.rpc('fn_resolve_login', { p_documento: d });
+    if (rpcErr || !data) {
+      throw new Error(
+        'Não encontramos esse documento cadastrado. Confira os números ou entre com o e-mail da conta.'
+      );
     }
+    email = data;
   }
 
   const { error } = await sb.auth.signInWithPassword({ email, password: senha });

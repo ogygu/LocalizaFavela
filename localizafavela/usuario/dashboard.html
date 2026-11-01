@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meu painel — LocalizaFavela</title>
+  <meta name="robots" content="noindex" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/reset.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/pages.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="../index.html" aria-label="LocalizaFavela — página inicial">
+        <svg class="pin" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/>
+        </svg>
+        Localiza<em>Favela</em>
+      </a>
+      <nav class="nav-desktop" aria-label="Navegação principal">
+        <a href="projetos.html">Explorar projetos</a>
+        <button type="button" class="btn btn-secondary btn-sm" id="btnSair">Sair</button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="conteudo" class="container">
+    <div class="dash-shell">
+      <!-- SIDEBAR -->
+      <aside class="dash-side" aria-label="Menu do painel">
+        <nav class="side-nav">
+          <a href="dashboard.html" aria-current="page">🏠 Início</a>
+          <a href="projetos.html">📍 Projetos perto de mim</a>
+          <a href="inscricoes.html">📋 Minhas inscrições</a>
+          <a href="perfil.html">🙂 Meu perfil</a>
+        </nav>
+      </aside>
+
+      <!-- CONTEÚDO -->
+      <section class="dash-main">
+        <div class="welcome-strip">
+          <img class="avatar" id="fotoPerfil" alt="" hidden />
+          <span class="avatar avatar-initials" id="iniciaisPerfil" aria-hidden="true"></span>
+          <div>
+            <h1 id="saudacao">Olá! 👋</h1>
+            <p class="localizacao" id="minhaRegiao">…</p>
+          </div>
+          <a href="projetos.html" class="btn btn-primary" style="margin-inline-start:auto">Buscar oportunidades</a>
+        </div>
+
+        <div class="stats-row" aria-label="Resumo das suas inscrições">
+          <div class="stat-box"><strong id="stTotal">–</strong><span>Inscrições enviadas</span></div>
+          <div class="stat-box"><strong id="stPendente">–</strong><span>Em análise pela ONG</span></div>
+          <div class="stat-box"><strong id="stAprovado">–</strong><span>Aprovadas 🎉</span></div>
+          <div class="stat-box"><strong id="stRejeitado">–</strong><span>Não selecionadas</span></div>
+        </div>
+
+        <div class="section-head" style="display:flex;justify-content:space-between;align-items:end;gap:var(--sp-4)">
+          <h2 class="section-title" style="font-size:var(--fs-xl)">Movimento recente</h2>
+        </div>
+        <div id="historicoResumido" style="display:flex;flex-direction:column;gap:var(--sp-3)">
+          <div class="skeleton" style="height:74px"></div>
+          <div class="skeleton" style="height:74px"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="../js/config/supabase.js"></script>
+  <script type="module" src="../js/pages/dash_usuario.js"></script>
+</body>
+</html>

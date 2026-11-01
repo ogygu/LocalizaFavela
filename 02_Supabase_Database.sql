@@ -426,6 +426,32 @@ for delete using (
 -- Leitura é pública (buckets public=true) para renderizar cards e galerias.
 
 -- ---------------------------------------------------------------------
+-- 5.5 RPC fn_resolve_login — LOGIN POR DOCUMENTO (regra de negócio do PIE)
+-- O Supabase Auth autentica por e-mail; a exigência acadêmica é entrar com
+-- CPF (usuário) ou CPF/CNPJ (ONG). Esta função SECURITY DEFINER resolve o
+-- documento → e-mail cadastrado, devolvendo APENAS o e-mail (nunca outros
+-- dados pessoais — minimização, LGPD art. 6º, III). Como é executada por
+-- anônimo no momento do login, precisa SECURITY DEFINER + search_path fixo.
+-- ---------------------------------------------------------------------
+create or replace function public.fn_resolve_login(p_documento text)
+returns text
+language sql stable security definer set search_path = public
+as $$
+    select coalesce(
+        (select u.email   from public.profiles_usuarios u where u.cpf      = regexp_replace(p_documento, '\D', '', 'g') and char_length(regexp_replace(p_documento,'\D','','g')) = 11),
+        (select au.email  from public.profiles_ongs o join auth.users au on au.id = o.id
+          where o.documento = regexp_replace(p_documento, '\D', '', 'g')),
+        null
+    );
+$$;
+
+revoke all on function public.fn_resolve_login(text) from anon, authenticated;
+grant execute on function public.fn_resolve_login(text) to anon, authenticated;
+
+comment on function public.fn_resolve_login(text) is
+  'Mapeia CPF (usuario) ou CPF/CNPJ (ONG) para o e-mail de acesso. Uso exclusivo do fluxo de login.';
+
+-- ---------------------------------------------------------------------
 -- 6. VIEWS DE APOIO AO FRONTEND
 -- ---------------------------------------------------------------------
 
@@ -446,7 +472,8 @@ select
     o.finalidade,
     o.estado,
     o.cidade,
-    o.bairro
+    o.bairro,
+    o.verificado
 from public.projects p
 join public.profiles_ongs o on o.id = p.ong_id
 where p.status = 'aberto';

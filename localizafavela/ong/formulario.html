@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Editar formulário — Painel da ONG</title>
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/reset.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/pages.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="../index.html"><svg class="pin" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>Localiza<em>Favela</em></a>
+      <nav class="nav-desktop"><a href="projetos.html">Meus projetos</a><button type="button" class="btn btn-secondary btn-sm" id="btnSair">Sair</button></nav>
+    </div>
+  </header>
+
+  <main id="conteudo" class="container">
+    <div class="dash-shell">
+      <aside class="dash-side"><nav class="side-nav" aria-label="Menu da ONG">
+        <a href="dashboard.html">🏠 Visão geral</a>
+        <a href="projetos.html" aria-current="page">📣 Meus projetos</a>
+        <a href="triagem.html">🗂️ Triagem de inscrições</a>
+        <a href="galeria.html">🖼️ Galeria de fotos</a>
+        <a href="perfil_ong.html">🏢 Perfil da ONG</a>
+      </nav></aside>
+
+      <section class="dash-main">
+        <h1 class="section-title" style="font-size:var(--fs-xl)" id="tituloPagina">Editar formulário de inscrição</h1>
+        <p class="lead" style="font-size:var(--fs-sm);margin-bottom:var(--sp-5)">Projeto: <strong id="nomeProjeto">…</strong>. As mudanças valem para novas inscrições.</p>
+
+        <div id="builderWrap">
+          <div id="builderCampos" style="display:flex;flex-direction:column;gap:var(--sp-3)"></div>
+
+          <div class="form-row" style="grid-template-columns:1fr auto;align-items:end;margin-top:var(--sp-4);gap:var(--sp-2)">
+            <div class="field" style="margin:0">
+              <label for="np_tiponovo">Tipo de pergunta</label>
+              <select class="select" id="np_tiponovo">
+                <option value="text">Resposta curta</option>
+                <option value="textarea">Texto longo</option>
+                <option value="number">Número</option>
+                <option value="date">Data</option>
+                <option value="select">Lista (dropdown)</option>
+                <option value="radio">Escolha única</option>
+                <option value="checkbox">Caixa de seleção (sim/não)</option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-secondary" id="btnAddCampo">+ Adicionar</button>
+          </div>
+
+          <div style="margin-top:var(--sp-5);display:flex;gap:var(--sp-3)">
+            <button type="button" class="btn btn-primary" id="btnSalvarForm">Salvar formulário</button>
+            <a href="projetos.html" class="btn btn-ghost">Voltar</a>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="../js/config/supabase.js"></script>
+  <script type="module" src="../js/pages/formulario_ong.js"></script>
+</body>
+</html>

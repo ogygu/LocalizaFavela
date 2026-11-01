@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-label="Ilustração de pessoas da comunidade se conectando em círculo">
+  <defs>
+    <linearGradient id="ceu" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E8F5E9"/><stop offset="1" stop-color="#FAF7F2"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="480" rx="22" fill="url(#ceu)"/>
+  <circle cx="520" cy="90" r="46" fill="#FD6925" opacity=".14"/>
+  <path d="M0 360 Q160 300 320 350 T640 340 V480 H0 Z" fill="#D7CCC8"/>
+  <path d="M0 400 Q200 350 400 396 T640 392 V480 H0 Z" fill="#8D6E63" opacity=".55"/>
+  <g transform="translate(120 250)">
+    <circle cx="0" cy="-34" r="20" fill="#2E7D32"/>
+    <path d="M-22 40 Q0 -8 22 40 Z" fill="#2E7D32"/>
+  </g>
+  <g transform="translate(240 230)">
+    <circle cx="0" cy="-34" r="20" fill="#5D4037"/>
+    <path d="M-22 40 Q0 -8 22 40 Z" fill="#5D4037"/>
+  </g>
+  <g transform="translate(360 238)">
+    <circle cx="0" cy="-34" r="20" fill="#43A047"/>
+    <path d="M-22 40 Q0 -8 22 40 Z" fill="#43A047"/>
+  </g>
+  <g transform="translate(478 258)">
+    <circle cx="0" cy="-34" r="20" fill="#8D6E63"/>
+    <path d="M-22 40 Q0 -8 22 40 Z" fill="#8D6E63"/>
+  </g>
+  <path d="M120 216 C180 150 300 150 360 204 M360 204 C420 160 470 176 478 224" stroke="#1B5E20" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="2 12"/>
+  <g transform="translate(288 128)">
+    <path d="M0 44 C-26 12 -26 -14 0 -26 C26 -14 26 12 0 44Z" fill="#2E7D32"/>
+    <circle cx="0" cy="-2" r="10" fill="#FAF7F2"/>
+  </g>
+</svg>
