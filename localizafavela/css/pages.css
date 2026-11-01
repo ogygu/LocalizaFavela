@@ -1,0 +1,152 @@
+/* =====================================================================
+   LocalizaFavela | pages.css — Estilos específicos por tela
+   (Home/manifesto, hero de impacto, cadastro com tabs, dashboards)
+   ===================================================================== */
+
+/* ---------- HOME: HERO + MANIFESTO ---------- */
+.hero {
+  position: relative; overflow: hidden;
+  padding-block: var(--sp-9);
+  background:
+    radial-gradient(60% 80% at 85% 10%, rgba(67, 160, 71, 0.14), transparent 60%),
+    radial-gradient(50% 70% at 10% 90%, rgba(141, 110, 99, 0.12), transparent 60%),
+    var(--bg-body);
+}
+.hero-inner { display: grid; gap: var(--sp-6); align-items: center; }
+@media (min-width: 900px) { .hero-inner { grid-template-columns: 1.1fr 0.9fr; } }
+
+.hero h1 { font-size: var(--fs-3xl); font-weight: 700; max-width: 20ch; }
+.hero h1 .accent { color: var(--c-verde-600); }
+.hero .lead { margin-top: var(--sp-4); }
+.hero-ctas { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-6); }
+
+.hero-art {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  aspect-ratio: 4 / 3; object-fit: cover; width: 100%;
+}
+
+/* Manifesto em tipografia editorial */
+.manifesto { background: var(--c-terra-900); color: var(--text-inverse); padding-block: var(--sp-9); }
+.manifesto p {
+  font-family: var(--font-display); font-size: var(--fs-xl);
+  line-height: var(--lh-loose); max-width: 30ch; margin-inline: auto; text-align: center;
+  color: var(--c-offwhite);
+}
+.manifesto .accent { color: var(--c-verde-500); font-style: italic; }
+.manifesto .assinatura {
+  display: block; margin-top: var(--sp-5); font-family: var(--font-body);
+  font-size: var(--fs-sm); color: var(--c-terra-200); text-align: center;
+}
+
+/* Impacto: números animados */
+.impact-grid { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.impact-item {
+  background: var(--bg-surface); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg); padding: var(--sp-6) var(--sp-4);
+  text-align: center; box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out);
+}
+.impact-item:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.impact-number { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-2xl); color: var(--c-verde-600); }
+.impact-label { font-size: var(--fs-sm); color: var(--text-secondary); margin-top: var(--sp-2); }
+
+/* Como funciona (3 passos) */
+.steps-grid { display: grid; gap: var(--sp-5); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.step-card { position: relative; padding: var(--sp-6); }
+.step-num {
+  position: absolute; top: calc(-1 * var(--sp-4)); left: var(--sp-5);
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--brand-primary); color: #fff;
+  display: grid; place-items: center; font-weight: 700; font-family: var(--font-display);
+  box-shadow: var(--shadow-md);
+}
+
+/* ODS chips na home */
+.ods-band { display: flex; justify-content: center; gap: var(--sp-4); flex-wrap: wrap; }
+.ods-card {
+  display: flex; align-items: center; gap: var(--sp-3);
+  background: var(--bg-surface); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill); padding: var(--sp-3) var(--sp-5);
+  box-shadow: var(--shadow-sm); font-size: var(--fs-sm); font-weight: 600; color: var(--c-terra-700);
+}
+.ods-card .num {
+  width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center;
+  color: #fff; font-family: var(--font-display); font-weight: 700;
+}
+.ods-card .num.ods10 { background: #DD1367; } /* cor oficial ODS 10 */
+.ods-card .num.ods11 { background: #FD6925; } /* cor oficial ODS 11 */
+
+/* ---------- LOGIN / CADASTRO ---------- */
+.auth-head { text-align: center; display: flex; flex-direction: column; gap: var(--sp-3); align-items: center; }
+.auth-head .segmented { margin-top: var(--sp-2); }
+.auth-alt { text-align: center; font-size: var(--fs-sm); color: var(--text-secondary); }
+
+.senha-wrap { position: relative; }
+.senha-toggle {
+  position: absolute; right: var(--sp-2); top: 50%; transform: translateY(-50%);
+  padding: var(--sp-2); color: var(--text-secondary); font-size: var(--fs-xs); font-weight: 600;
+}
+
+.form-feedback {
+  background: var(--c-status-rejeitado-bg); color: var(--c-status-rejeitado-fg);
+  border-radius: var(--radius-md); padding: var(--sp-3) var(--sp-4);
+  font-size: var(--fs-sm); display: none;
+}
+.form-feedback.is-visible { display: block; animation: toast-in var(--dur-med) var(--ease-out); }
+
+/* ---------- DASHBOARD USUÁRIO ---------- */
+.welcome-strip {
+  display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap;
+  background: linear-gradient(120deg, var(--c-verde-100), var(--bg-surface));
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);
+  padding: var(--sp-5); margin-bottom: var(--sp-5);
+}
+.welcome-strip h1 { font-size: var(--fs-xl); }
+.welcome-strip .localizacao { font-size: var(--fs-sm); color: var(--text-secondary); }
+
+.project-tags { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.tag {
+  font-size: var(--fs-xs); font-weight: 600; color: var(--c-terra-700);
+  background: var(--c-terra-100); border-radius: var(--radius-pill); padding: 3px var(--sp-3);
+}
+
+.btn-inscrito {
+  background: var(--c-status-aprovado-bg); color: var(--c-status-aprovado-fg);
+  pointer-events: none;
+}
+
+/* ---------- DASHBOARD ONG ---------- */
+.stats-row { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: var(--sp-5); }
+.stat-box {
+  background: var(--bg-surface); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md); padding: var(--sp-4) var(--sp-5); box-shadow: var(--shadow-sm);
+}
+.stat-box strong { font-family: var(--font-display); font-size: var(--fs-xl); color: var(--c-terra-900); display: block; }
+.stat-box span { font-size: var(--fs-xs); color: var(--text-secondary); }
+
+.app-row {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--sp-4);
+  padding: var(--sp-4); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+  background: var(--bg-surface); flex-wrap: wrap;
+}
+.app-row .candidato { display: flex; align-items: center; gap: var(--sp-3); min-width: 220px; flex: 1; }
+.app-row .acoes { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+
+/* Galeria da ONG */
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-3); }
+.gallery-item { aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-md); width: 100%; transition: transform var(--dur-fast) var(--ease-out); }
+.gallery-item:hover { transform: scale(1.03); }
+
+/* Form builder (ONG) */
+.fb-field {
+  border: 1.5px dashed var(--c-terra-200); border-radius: var(--radius-md);
+  padding: var(--sp-4); display: grid; gap: var(--sp-3); margin-bottom: var(--sp-3);
+  background: var(--bg-surface); transition: border-color var(--dur-fast);
+}
+.fb-field:hover { border-color: var(--c-verde-500); }
+.fb-toolbar { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+
+/* Perfil (usuário e ONG) */
+.profile-head { display: flex; gap: var(--sp-5); align-items: center; flex-wrap: wrap; margin-bottom: var(--sp-5); }
+.upload-hint { font-size: var(--fs-xs); color: var(--text-secondary); }

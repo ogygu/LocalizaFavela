@@ -1,0 +1,412 @@
+=====================================================================
+LOCALIZAFavela — FASE 3 | DESIGN SYSTEM (UI/UX Empático)
+Arquivo: 03_Design_System.txt
+Projeto Integrador de Extensão (PIE) — UniSales
+Equipe: Gustavo de Paula Bonjardim | Andressa Gonçalves | Giovanna Vargas
+Alinhamento: ODS 10 (Redução das Desigualdades) e ODS 11 (Cidades e
+Comunidades Sustentáveis)
+---------------------------------------------------------------------
+PRINCÍPIOS DE DESIGN
+1. Emprego de paleta terrosa + verdes vivos + off-white: remete a
+   comunidade, chão, esperança e tecnologia — sem cara de template.
+2. Acessibilidade AA como linha de base: contraste mínimo 4.5:1 no
+   texto, alvos de toque >= 44px, foco visível customizado, suporte a
+   prefers-reduced-motion e prefers-color-scheme implícito.
+3. Micro-interações discretas (elevação em hover, transições 150–250ms,
+   skeleton loading) que comunicam "o sistema está vivo" sem distrair.
+4. Jerarquia por espaçamento e peso tipográfico, não por bordas duras.
+5. Mobile-first: grid fluido, breakpoints por conteúdo (não por device).
+=====================================================================
+
+---------------------------------------------------------------------
+1. PALETA DE CORES (CSS VARIABLES — tokens.css)
+---------------------------------------------------------------------
+Conceito cromático:
+- TERRA (marrom terroso): raiz, comunidade, o "local" de LocalizaFavela.
+- VERDE VIVO: esperança, crescimento, ação primária (CTAs).
+- OFF-WHITE: acolhimento, leveza, fundo principal (evita branco cirúrgico).
+- CARBON: texto escuro amaciado (nunca #000 puro — hostil em leitura).
+- ESTADOS: âmbar = pendente | verde-emerald = aprovado | terracota = rejeitado.
+
+:root {
+  /* ===== 1.1 CORES SEMÂNTICAS DA MARCA ===== */
+  --c-terra-900: #3E2723;   /* marrom profundo (rodapé, textos de impacto) */
+  --c-terra-700: #5D4037;   /* marrom terra (títulos sobre off-white)      */
+  --c-terra-500: #8D6E63;   /* marrom médio (ícones, bordas afetivas)      */
+  --c-terra-200: #D7CCC8;   /* areia (bordas suaves, dividers)             */
+  --c-terra-100: #EFEBE9;   /* areia clara (fundos secundários)            */
+
+  --c-verde-700: #1B5E20;   /* verde escuro (hover de ações, textos fortes)*/
+  --c-verde-600: #2E7D32;   /* verde vivo PRIMÁRIO (botões, links)         */
+  --c-verde-500: #43A047;   /* verde vivo claro (foco, gráficos)           */
+  --c-verde-100: #E8F5E9;   /* névoa verde (fundos de sucesso/hover)       */
+
+  --c-offwhite: #FAF7F2;    /* fundo geral da plataforma                   */
+  --c-papel:   #FFFFFF;     /* superfície de cards (contraste com offwhite)*/
+  --c-carbon:  #212121;     /* corpo de texto                              */
+  --c-grafite: #616161;     /* texto secundário / meta                     */
+
+  /* ===== 1.2 CORES DE ESTADO (badges de inscrição/projeto) ===== */
+  --c-status-pendente-bg:     #FFF3E0;
+  --c-status-pendente-fg:     #E65100;  /* âmbar: triagem em andamento   */
+  --c-status-aprovado-bg:     #E8F5E9;
+  --c-status-aprovado-fg:     #1B5E20;  /* verde: vaga conquistada        */
+  --c-status-rejeitado-bg:    #FBE9E7;
+  --c-status-rejeitado-fg:    #BF360C;  /* terracota: feedback humano     */
+  --c-status-aberto-bg:       #E0F2F1;
+  --c-status-aberto-fg:       #00695C;  /* teal: processo seletivo aberto */
+
+  /* ===== 1.3 FUNÇÃO (tokens de uso) ===== */
+  --bg-body:        var(--c-offwhite);
+  --bg-surface:     var(--c-papel);
+  --bg-surface-alt: var(--c-terra-100);
+  --text-primary:   var(--c-carbon);
+  --text-secondary: var(--c-grafite);
+  --text-inverse:   #FAF7F2;
+  --heading-color:  var(--c-terra-900);
+  --brand-primary:  var(--c-verde-600);
+  --brand-primary-hover: var(--c-verde-700);
+  --brand-accent:   var(--c-terra-500);
+  --link-color:     var(--c-verde-700);
+  --border-subtle:  var(--c-terra-200);
+  --focus-ring:     0 0 0 3px rgba(67, 160, 71, 0.35);
+
+  /* ===== 1.4 TIPOGRAFIA ===== */
+  --font-display: "Sora", "Poppins", system-ui, sans-serif; /* títulos: geometrica, moderna, hopeful */
+  --font-body:    "Inter", system-ui, -apple-system, sans-serif; /* corpo: legibilidade máxima */
+  --fs-xs:   0.75rem;    /* 12px legendas/meta          */
+  --fs-sm:   0.875rem;   /* 14px texto secundário       */
+  --fs-base: 1rem;       /* 16px corpo (mínimo acessível) */
+  --fs-md:   1.125rem;   /* 18px lead/destaque leve     */
+  --fs-lg:   1.375rem;   /* 22px sub-títulos            */
+  --fs-xl:   1.75rem;    /* 28px H3                     */
+  --fs-2xl:  2.25rem;    /* 36px H2                     */
+  --fs-3xl:  clamp(2.5rem, 6vw, 3.75rem); /* 40–60px hero H1 fluido */
+  --lh-tight: 1.15;      /* títulos                     */
+  --lh-normal: 1.6;      /* corpo                       */
+  --lh-loose:  1.8;      /* manifesto (respiro editorial) */
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+  --fw-bold:    700;
+
+  /* ===== 1.5 ESPECAMENTO / GRADE ESPACIAL (escala de 4pt) ===== */
+  --sp-1:  0.25rem;  /*  4px */
+  --sp-2:  0.5rem;   /*  8px */
+  --sp-3:  0.75rem;  /* 12px */
+  --sp-4:  1rem;     /* 16px */
+  --sp-5:  1.5rem;   /* 24px */
+  --sp-6:  2rem;     /* 32px */
+  --sp-7:  3rem;     /* 48px */
+  --sp-8:  4rem;     /* 64px */
+  --sp-9:  6rem;     /* 96px blocos do manifesto */
+
+  /* ===== 1.6 BORDAS, SOMBRAS E RAIOs ===== */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 3px rgba(62, 39, 35, 0.08);
+  --shadow-md: 0 6px 18px rgba(62, 39, 35, 0.10);
+  --shadow-lg: 0 14px 40px rgba(62, 39, 35, 0.14);
+  --shadow-lift: 0 18px 46px rgba(46, 125, 50, 0.18); /* hover de card CTA */
+
+  /* ===== 1.7 MOVIMENTO (micro-interações) ===== */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 150ms;
+  --dur-med:  250ms;
+  --dur-slow: 400ms;
+
+  /* ===== 1.8 LAYOUT ===== */
+  --container-max: 1200px;
+  --container-narrow: 720px; /* formulários e manifesto: largura de leitura */
+  --header-h: 72px;
+}
+
+/* Respeito a usuários sensíveis a movimento (acessibilidade) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+---------------------------------------------------------------------
+2. TIPOGRAFIA E ESPAÇAMENTOS — REGRAS DE USO
+---------------------------------------------------------------------
+2.1 Escala tipográfica (mobile-first, fluida)
+- H1 (hero/manifesto): var(--fs-3xl), --font-display, 700, lh-tight,
+  cor --heading-color. Frase-manifesto pode usar itálico parcial em
+  --c-verde-600 para destacar palavras-chave ("oportunidade", "comunidade").
+- H2 (seções): var(--fs-2xl), display 600.
+- H3 (cards/títulos de projeto): var(--fs-xl), display 600.
+- Lead (parágrafo de abertura): var(--fs-md), corpo 400, --text-secondary.
+- Corpo: var(--fs-base), Inter 400, lh-normal, max-width ~65ch.
+- Meta/badges: var(--fs-xs)/--fs-sm, 500, letter-spacing 0.02em.
+
+2.2 Espaçamento vertical entre seções
+- Blocos públicos (home): --sp-9 entre seções; --sp-6 dentro delas.
+- Dashboards: densidade maior — --sp-5 entre módulos, --sp-4 internos.
+- Formulários: campo-a-campo --sp-4; label-input --sp-2; grupos --sp-6.
+
+2.3 Ritmo horizontal
+- Container: padding lateral --sp-5 (mobile) → --sp-6 (>=768px).
+- Grid de cards: gap --sp-5; colunas automáticas (ver §3.2).
+
+---------------------------------------------------------------------
+3. ESTRUTURA BASE DO CSS (reset, layout grid, componentes)
+---------------------------------------------------------------------
+3.1 RESET + BASE (reset.css)
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  line-height: var(--lh-normal);
+  color: var(--text-primary);
+  background: var(--bg-body);
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+img, svg, video { display: block; max-width: 100%; height: auto; }
+ul[class], ol[class] { list-style: none; }
+a { color: var(--link-color); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+button { font: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font: inherit; color: inherit; }
+
+/* Foco visível e bonito (acessibilidade键盘) */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+/* Link "pular para conteúdo" (acessibilidade) */
+.skip-link {
+  position: absolute; left: -999px; top: 0;
+  background: var(--c-terra-900); color: var(--text-inverse);
+  padding: var(--sp-2) var(--sp-4); z-index: 100; border-radius: 0 0 var(--radius-sm) 0;
+}
+.skip-link:focus { left: 0; }
+
+h1,h2,h3,h4 { font-family: var(--font-display); color: var(--heading-color); line-height: var(--lh-tight); }
+
+3.2 LAYOUT GRID (layout.css)
+
+.container      { width: min(100% - 2*var(--sp-5), var(--container-max)); margin-inline: auto; }
+.container-read { width: min(100% - 2*var(--sp-5), var(--container-narrow)); margin-inline: auto; }
+
+/* Header fixo leve com blur sutil */
+.site-header {
+  position: sticky; top: 0; z-index: 50; height: var(--header-h);
+  display: flex; align-items: center;
+  background: rgba(250, 247, 242, 0.88);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.site-header .container { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); }
+
+.brand { display: flex; align-items: center; gap: var(--sp-2); font-family: var(--font-display); font-weight: 700; font-size: var(--fs-lg); color: var(--c-terra-900); }
+.brand .pin { color: var(--c-verde-600); }           /* pino de mapa no logo */
+.brand em   { font-style: normal; color: var(--c-verde-600); } /* "Favela" destacado */
+
+.nav-desktop { display: none; gap: var(--sp-5); }
+.nav-toggle  { display: inline-flex; }               /* hambone mobile */
+
+/* Grade responsiva de cards (ONGs / projetos) */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: var(--sp-5);
+}
+
+/* Layout de dashboard: sidebar colapsável + main */
+.dash-shell { display: grid; grid-template-columns: 1fr; gap: var(--sp-5); padding-block: var(--sp-6); }
+.dash-side  { display: none; }
+.dash-main  { min-width: 0; }
+
+@media (min-width: 900px) {
+  .nav-desktop { display: flex; }
+  .nav-toggle  { display: none; }
+  .dash-shell  { grid-template-columns: 240px 1fr; align-items: start; }
+  .dash-side   { display: block; position: sticky; top: calc(var(--header-h) + var(--sp-5)); }
+}
+
+.footer-site {
+  margin-top: var(--sp-9);
+  background: var(--c-terra-900);
+  color: var(--text-inverse);
+  padding-block: var(--sp-7);
+}
+.footer-site a { color: var(--c-terra-200); }
+.footer-ods { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+
+3.3 COMPONENTES REUTILIZÁVEIS (components.css)
+
+/* ---------- BOTÕES ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
+  min-height: 44px;                                  /* alvo de toque acessível */
+  padding: var(--sp-3) var(--sp-5);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display); font-weight: 600; font-size: var(--fs-sm);
+  letter-spacing: 0.01em;
+  transition: transform var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+}
+.btn:hover  { transform: translateY(-2px); }         /* micro-interação de elevação */
+.btn:active { transform: translateY(0) scale(0.98); }
+
+.btn-primary { background: var(--brand-primary); color: #fff; box-shadow: var(--shadow-sm); }
+.btn-primary:hover { background: var(--brand-primary-hover); box-shadow: var(--shadow-lift); }
+
+.btn-secondary { background: transparent; color: var(--c-terra-700); border: 1.5px solid var(--c-terra-500); }
+.btn-secondary:hover { background: var(--c-terra-100); }
+
+.btn-wa { background: #25D366; color: #06371A; }     /* WhatsApp oficial p/ aprovados */
+.btn-wa:hover { background: #1EBE5B; }
+
+.btn-ghost { color: var(--text-secondary); }
+.btn-ghost:hover { color: var(--c-terra-900); background: var(--c-terra-100); }
+
+.btn-danger-outline { border: 1.5px solid var(--c-status-rejeitado-fg); color: var(--c-status-rejeitado-fg); background: transparent; }
+.btn[disabled], .btn.is-loading { opacity: 0.6; pointer-events: none; }
+
+/* Spinner interno do botão durante chamada ao Supabase */
+.btn.is-loading::after {
+  content: ""; width: 1em; height: 1em; border-radius: 50%;
+  border: 2px solid currentColor; border-top-color: transparent;
+  animation: spin 700ms linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- CARD DE ONG / PROJETO ---------- */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  transition: transform var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out);
+}
+.card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+
+.card-cover { aspect-ratio: 16 / 9; object-fit: cover; width: 100%; background: var(--c-terra-100); }
+
+.card-body { padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3); flex: 1; }
+.card-title { font-size: var(--fs-lg); font-weight: 600; }
+.card-meta  { font-size: var(--fs-sm); color: var(--text-secondary); display: flex; align-items: center; gap: var(--sp-2); }
+.card-meta .dot::before { content: "•"; margin-inline: var(--sp-1); color: var(--c-terra-500); }
+.card-desc  { font-size: var(--fs-sm); color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.card-foot  { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); }
+
+/* Selo de verificação da ONG (confiança social) */
+.verified-badge { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-xs); color: var(--c-verde-700); font-weight: 600; }
+
+/* ---------- BADGES DE STATUS ---------- */
+.badge {
+  display: inline-flex; align-items: center; gap: var(--sp-1);
+  padding: 3px var(--sp-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.02em;
+}
+.badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.badge-pendente { background: var(--c-status-pendente-bg); color: var(--c-status-pendente-fg); }
+.badge-aprovado { background: var(--c-status-aprovado-bg); color: var(--c-status-aprovado-fg); }
+.badge-rejeitado{ background: var(--c-status-rejeitado-bg); color: var(--c-status-rejeitado-fg); }
+.badge-aberto   { background: var(--c-status-aberto-bg);   color: var(--c-status-aberto-fg); }
+
+/* ---------- FORMULÁRIOS ---------- */
+.field { display: flex; flex-direction: column; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+.field label { font-size: var(--fs-sm); font-weight: 600; color: var(--c-terra-700); }
+.field .hint { font-size: var(--fs-xs); color: var(--text-secondary); }
+
+.input, .select, .textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+.textarea { min-height: 110px; resize: vertical; }
+.input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--c-verde-500); box-shadow: var(--focus-ring); }
+
+.field.has-error .input { border-color: var(--c-status-rejeitado-fg); }
+.field .error-msg { font-size: var(--fs-xs); color: var(--c-status-rejeitado-fg); display: none; }
+.field.has-error .error-msg { display: block; }
+
+/* Medidor de força de senha (senha forte obrigatória) */
+.pw-meter { display: flex; gap: var(--sp-1); }
+.pw-meter span { flex: 1; height: 4px; border-radius: 2px; background: var(--c-terra-200); transition: background var(--dur-med); }
+.pw-meter.lv1 span:nth-child(1) { background: var(--c-status-rejeitado-fg); }
+.pw-meter.lv2 span:nth-child(-n+2){ background: var(--c-status-pendente-fg); }
+.pw-meter.lv3 span:nth-child(-n+3){ background: #9E9D24; }
+.pw-meter.lv4 span { background: var(--c-verde-600); }
+
+/* Toggle de fluxo Usuário | ONG (cadastro/login) */
+.segmented { display: inline-flex; background: var(--c-terra-100); border-radius: var(--radius-pill); padding: 4px; gap: 4px; }
+.segmented button { padding: var(--sp-2) var(--sp-5); border-radius: var(--radius-pill); font-weight: 600; font-size: var(--fs-sm); color: var(--text-secondary); transition: all var(--dur-fast) var(--ease-out); }
+.segmented button[aria-pressed="true"] { background: var(--bg-surface); color: var(--c-terra-900); box-shadow: var(--shadow-sm); }
+
+/* ---------- MODAL / TOAST / SKELETON ---------- */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(62,39,35,0.45); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 60; opacity: 0; pointer-events: none; transition: opacity var(--dur-med); }
+.modal-backdrop.is-open { opacity: 1; pointer-events: auto; }
+.modal { background: var(--bg-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); width: min(92vw, 560px); padding: var(--sp-6); transform: translateY(12px) scale(0.98); transition: transform var(--dur-med) var(--ease-out); }
+.modal-backdrop.is-open .modal { transform: none; }
+
+.toast-stack { position: fixed; bottom: var(--sp-5); right: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3); z-index: 80; }
+.toast { background: var(--c-terra-900); color: var(--text-inverse); padding: var(--sp-3) var(--sp-5); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); font-size: var(--fs-sm); animation: toast-in var(--dur-med) var(--ease-out); }
+.toast.ok    { border-left: 4px solid var(--c-verde-500); }
+.toast.error { border-left: 4px solid var(--c-status-rejeitado-fg); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(10px); } }
+
+.skeleton { background: linear-gradient(90deg, var(--c-terra-100) 25%, var(--c-terra-200) 50%, var(--c-terra-100) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: var(--radius-sm); }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* ---------- AVATAR ---------- */
+.avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid var(--c-terra-200); background: var(--c-terra-100); }
+.avatar-lg { width: 96px; height: 96px; }
+
+/* ---------- FILTROS (dashboard usuário) ---------- */
+.filter-bar { display: grid; grid-template-columns: 1fr; gap: var(--sp-3); background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--sp-4); box-shadow: var(--shadow-sm); }
+@media (min-width: 700px) { .filter-bar { grid-template-columns: repeat(3, 1fr) auto; align-items: end; } }
+
+---------------------------------------------------------------------
+4. ANOTAÇÕES UX POR TELA (para guiar a codificação Fase 4+)
+---------------------------------------------------------------------
+HOME (pública):
+- Hero com frase-manifesto em H1 fluido + CTA duplo (Entrar / Criar conta).
+- Seção "Impacto" com números-animação (contagem up) ao entrar no viewport.
+- Rodapé com selos ODS 10 e 11 (identidade PIE).
+
+CADASTRO:
+- Segmented control Usuário|ONG troca o formulário sem recarregar página.
+- Máscaras ao digitar: CPF/CNPJ, WhatsApp, CEP (autocompletar UF/cidade/bairro via ViaCEP).
+- Medidor de senha em tempo real; submit bloqueado até nível 3+.
+
+DASHBOARD USUÁRIO:
+- Skeleton nos cards enquanto o Supabase responde.
+- Botão "Inscrever-se" vira estado "Inscrito ✓ (pendente)" após envio — evita dupla inscrição (garantida também pelo UNIQUE no banco).
+
+DASHBOARD ONG:
+- Triagem em tabela/cards com badge de status; aprovar abre modal com mensagem pré-preenchida wa.me já montada com o WhatsApp do candidato.
+- Rejeição exige parecer (campo obrigatório no modal) — respeito ao candidato.
+
+ACESSIBILIDADE TRANSVERSAL:
+- Landmarks (header/nav/main/footer), aria-live no toast-stack, labels explícitos,
+  contraste validado AA, navegação completa por teclado.
+
+=====================================================================
+FIM DA FASE 3 — LocalizaFavela | PIE UniSales | ODS 10 & 11
+=====================================================================

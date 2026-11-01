@@ -1,0 +1,44 @@
+/* =====================================================================
+   LocalizaFavela | reset.css — Reset moderno + base acessível
+   ===================================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  line-height: var(--lh-normal);
+  color: var(--text-primary);
+  background: var(--bg-body);
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+img, svg, video { display: block; max-width: 100%; height: auto; }
+ul[class], ol[class] { list-style: none; }
+a { color: var(--link-color); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+button { font: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+.skip-link {
+  position: absolute; left: -999px; top: 0;
+  background: var(--c-terra-900); color: var(--text-inverse);
+  padding: var(--sp-2) var(--sp-4); z-index: 100;
+  border-radius: 0 0 var(--radius-sm) 0;
+}
+.skip-link:focus { left: 0; }
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--heading-color);
+  line-height: var(--lh-tight);
+}

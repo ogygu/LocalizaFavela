@@ -1,0 +1,101 @@
+/* =====================================================================
+   LocalizaFavela | PIE UniSales — ODS 10 & 11
+   tokens.css — Design Tokens (extraído do 03_Design_System.txt)
+   Paleta: terra (comunidade) + verde vivo (esperança) + off-white (acolhimento)
+   ===================================================================== */
+:root {
+  /* ===== CORES SEMÂNTICAS DA MARCA ===== */
+  --c-terra-900: #3E2723;
+  --c-terra-700: #5D4037;
+  --c-terra-500: #8D6E63;
+  --c-terra-200: #D7CCC8;
+  --c-terra-100: #EFEBE9;
+
+  --c-verde-700: #1B5E20;
+  --c-verde-600: #2E7D32;
+  --c-verde-500: #43A047;
+  --c-verde-100: #E8F5E9;
+
+  --c-offwhite: #FAF7F2;
+  --c-papel:    #FFFFFF;
+  --c-carbon:   #212121;
+  --c-grafite:  #616161;
+
+  /* ===== CORES DE ESTADO ===== */
+  --c-status-pendente-bg:  #FFF3E0;
+  --c-status-pendente-fg:  #E65100;
+  --c-status-aprovado-bg:  #E8F5E9;
+  --c-status-aprovado-fg:  #1B5E20;
+  --c-status-rejeitado-bg: #FBE9E7;
+  --c-status-rejeitado-fg: #BF360C;
+  --c-status-aberto-bg:    #E0F2F1;
+  --c-status-aberto-fg:    #00695C;
+
+  /* ===== TOKENS DE FUNÇÃO ===== */
+  --bg-body:        var(--c-offwhite);
+  --bg-surface:     var(--c-papel);
+  --bg-surface-alt: var(--c-terra-100);
+  --text-primary:   var(--c-carbon);
+  --text-secondary: var(--c-grafite);
+  --text-inverse:   #FAF7F2;
+  --heading-color:  var(--c-terra-900);
+  --brand-primary:  var(--c-verde-600);
+  --brand-primary-hover: var(--c-verde-700);
+  --brand-accent:   var(--c-terra-500);
+  --link-color:     var(--c-verde-700);
+  --border-subtle:  var(--c-terra-200);
+  --focus-ring:     0 0 0 3px rgba(67, 160, 71, 0.35);
+
+  /* ===== TIPOGRAFIA ===== */
+  --font-display: "Sora", "Poppins", system-ui, sans-serif;
+  --font-body:    "Inter", system-ui, -apple-system, sans-serif;
+  --fs-xs:   0.75rem;
+  --fs-sm:   0.875rem;
+  --fs-base: 1rem;
+  --fs-md:   1.125rem;
+  --fs-lg:   1.375rem;
+  --fs-xl:   1.75rem;
+  --fs-2xl:  2.25rem;
+  --fs-3xl:  clamp(2.5rem, 6vw, 3.75rem);
+  --lh-tight: 1.15;
+  --lh-normal: 1.6;
+  --lh-loose:  1.8;
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+  --fw-bold:    700;
+
+  /* ===== ESPAÇAMENTO (escala de 4pt) ===== */
+  --sp-1: 0.25rem; --sp-2: 0.5rem;  --sp-3: 0.75rem; --sp-4: 1rem;
+  --sp-5: 1.5rem;  --sp-6: 2rem;    --sp-7: 3rem;    --sp-8: 4rem;
+  --sp-9: 6rem;
+
+  /* ===== BORDAS, SOMBRAS, RAIOs ===== */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 3px rgba(62, 39, 35, 0.08);
+  --shadow-md: 0 6px 18px rgba(62, 39, 35, 0.10);
+  --shadow-lg: 0 14px 40px rgba(62, 39, 35, 0.14);
+  --shadow-lift: 0 18px 46px rgba(46, 125, 50, 0.18);
+
+  /* ===== MOVIMENTO ===== */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 150ms;
+  --dur-med:  250ms;
+  --dur-slow: 400ms;
+
+  /* ===== LAYOUT ===== */
+  --container-max: 1200px;
+  --container-narrow: 720px;
+  --header-h: 72px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
