@@ -1,0 +1,377 @@
+=====================================================================
+LOCALIZAFAVELA — FASE 1: ARQUITETURA E MODELAGEM
+Projeto Integrador de Extensão (PIE) — UniSales
+Equipe: Gustavo de Paula Bonjardim | Andressa Gonçalves | Giovanna Vargas
+Alinhamento ODS: ODS 10 (Redução das Desigualdades) e ODS 11 (Cidades e Comunidades Sustentáveis)
+Stack: HTML5 + CSS3 (Vanilla) + JavaScript ES6+ | Backend/DB: Supabase (PostgreSQL)
+=====================================================================
+
+---------------------------------------------------------------------
+1. DIAGRAMA DE CASOS DE USO (Mermaid.js)
+---------------------------------------------------------------------
+
+```mermaid
+graph LR
+    USU((Usuário Comum<br/>Cidadão))
+    ONG((ONG / Projeto<br/>Social))
+    VIS((Visitante<br/>Público))
+
+    subgraph SG_PUBLICO["Home Pública"]
+        UC_MANIFESTO[("Ver Manifesto<br/>e Impacto Social")]
+        UC_BUSCAR[("Buscar Projetos<br/>por Região")]
+        UC_LOGIN[("Realizar Login")]
+        UC_CAD_USU[("Cadastrar-se<br/>como Usuário")]
+        UC_CAD_ONG[("Cadastrar-se<br/>como ONG")]
+    end
+
+    subgraph SG_USUARIO["Dashboard do Usuário"]
+        UC_FILTRO[("Filtrar por Estado,<br/>Cidade e Bairro (CEP)")]
+        UC_INSCREVER[("Inscrever-se em<br/>Processo Seletivo")]
+        UC_FORM[("Preencher Formulário<br/>Dinâmico da ONG")]
+        UC_HIST[("Consultar Histórico<br/>de Inscrições")]
+        UC_PERFIL_U[("Editar Perfil:<br/>Foto, Bio, Dados")]
+        UC_STATUS[("Acompanhar Status:<br/>Pendente/Aprovado/Rejeitado")]
+    end
+
+    subgraph SG_ONG["Dashboard da ONG"]
+        UC_PERFIL_O[("Editar Perfil:<br/>Foto, Bio, Finalidade,<br/>Público-alvo")]
+        UC_GALERIA[("Gerenciar Galeria<br/>de Fotos")]
+        UC_PROJETO[("Criar/Gerenciar<br/>Projetos Sociais")]
+        UC_FORMS[("Criar Formulários<br/>Dinâmicos de Seleção")]
+        UC_TRIAGEM[("Triagem de Inscritos:<br/>Aprovar / Rejeitar")]
+        UC_CONTATO[("Contatar Aprovados via<br/>WhatsApp (wa.me) ou E-mail")]
+    end
+
+    VIS --> UC_MANIFESTO
+    VIS --> UC_BUSCAR
+    VIS --> UC_LOGIN
+    VIS --> UC_CAD_USU
+    VIS --> UC_CAD_ONG
+
+    USU --> UC_FILTRO
+    USU --> UC_INSCREVER
+    USU --> UC_FORM
+    USU --> UC_HIST
+    USU --> UC_PERFIL_U
+    USU --> UC_STATUS
+
+    ONG --> UC_PERFIL_O
+    ONG --> UC_GALERIA
+    ONG --> UC_PROJETO
+    ONG --> UC_FORMS
+    ONG --> UC_TRIAGEM
+    ONG --> UC_CONTATO
+
+    UC_INSCREVER -.include.-> UC_FORM
+    UC_CAD_USU -.extends.-> UC_LOGIN
+    UC_CAD_ONG -.extends.-> UC_LOGIN
+
+    style SG_PUBLICO fill:#FBF7F0,stroke:#C8A66B
+    style SG_USUARIO fill:#EFF5EE,stroke:#2F6B4F
+    style SG_ONG fill:#FDF3E7,stroke:#C8642B
+```
+
+---------------------------------------------------------------------
+2. DIAGRAMA DE CLASSES (Mermaid.js)
+---------------------------------------------------------------------
+
+```mermaid
+classDiagram
+    class Endereco {
+        -String cep
+        -String estado
+        -String cidade
+        -String bairro
+        -String logradouro
+        +porLocalizacao() String
+    }
+
+    class Conta {
+        <<abstract>>
+        -UUID id
+        -String nome
+        -String telefoneWhatsapp
+        -String email
+        -String redeSocialOpcional
+        -Endereco endereco
+        -String senhaHash
+        -DateTime criadoEm
+        +logar(docs, senha) bool
+        +editarPerfil(dados) void
+        +validarSenhaForte(senha) bool
+    }
+
+    class Usuario {
+        -String cpf
+        -String bio
+        -String fotoUrl
+        +inscrever(project, formRespostas) Application
+        +consultarHistorico() List~Application~
+        +personalizarPerfil(config) void
+    }
+
+    class ONG {
+        -String cnpjOuCpf
+        -String nomeOng
+        -String finalidade
+        -String publicoAlvo
+        -String fotoUrl
+        -List~Galeria~ galerias
+        +criarProjeto(dados) Project
+        +criarFormulario(estrutura) CustomForm
+        +triagem(application, status) void
+        +contatarAprovados(canal) String
+    }
+
+    class Projeto {
+        -UUID id
+        -String titulo
+        -Text descricao
+        -String area
+        -VagaEnum status
+        -DateTime prazoInscricao
+        +abrirSelecao() void
+        +encerrarSelecao() void
+    }
+
+    class FormularioDinamico {
+        -UUID id
+        -JSONB estruturaCampos
+        +validarResposta(resposta) bool
+        +renderForm() HTML
+    }
+
+    class RespostaFormulario {
+        -UUID id
+        -JSONB valores
+        +submeter() void
+    }
+
+    class Application {
+        -UUID id
+        -StatusInscricao status
+        -DateTime inscritaEm
+        -String parecerOng
+        +aprovar() void
+        +rejeitar(parecer) void
+        +gerarLinkWhatsApp() String
+    }
+
+    class Galeria {
+        -UUID id
+        -String urlImagem
+        -String legenda
+        -int ordem
+        +upload(file) void
+        +remover(id) void
+    }
+
+    class AuthService {
+        <<Supabase>>
+        +signIn(campoLogin, senha) Session
+        +signUp(tipoConta, dados) UUID
+        +getSession() Session
+    }
+
+    class ApiClient {
+        <<JS ES6>>
+        +getProjetos(filtro) List
+        +postApplication(payload) Application
+        +patchAppStatus(id, status) void
+    }
+
+    Conta <|-- Usuario
+    Conta <|-- ONG
+    Usuario "1" --> "*" Application : realiza
+    Usuario "1" --> "1" Projeto : participa
+    Usuario "1" o-- "*" RespostaFormulario : preenche
+    ONG "1" *-- "*" Projeto : gerencia
+    ONG "1" *-- "*" Galeria : possui
+    Projeto "1" --> "1" FormularioDinamico : usa
+    Application "1" --> "1" RespostaFormulario : anexa
+    Application "*" --> "1" Projeto : refere-se
+    AuthService ..> Conta : autentica
+    ApiClient ..> Application : orquestra
+    ApiClient ..> Projeto : orquestra
+    Usuario --> Endereco : mora_em
+    ONG --> Endereco : sede_em
+```
+
+---------------------------------------------------------------------
+3. MODELO CONCEITUAL E LÓGICO DO BANCO DE DADOS (Supabase/PostgreSQL)
+---------------------------------------------------------------------
+
+3.1 Modelo Conceitual (Entidades e Regras de Negócio)
+
+• ENTIDADE CONTA (herança por tabela separada — padrão Supabase Auth):
+  - auth.users (tabela nativa do Supabase) armazena credenciais (email/senha).
+  - profiles_usuarios e profiles_ongs espelham os dados públicos de cada tipo de conta.
+  - Regra: CPF único para usuário; CNPJ OU CPF único para ONG (campo documento_ong aceita ambos, validado por regex no front e CHECK no banco).
+
+• ENTIDADE ENDEREÇO:
+  - CEP é a chave de localização. Estado/Cidade/Bairro são denormalizados na própria conta para permitir filtro rápido (LIKE + índices btree) sem JOIN pesado.
+
+• ENTIDADE PROJETO (ONG gera 1..N projetos):
+  - Cada projeto pertence a exatamente uma ONG (FK ong_id).
+  - Status: rascunho | aberto | encerrado.
+
+• ENTIDADE FORMULÁRIO DINÂMICO:
+  - Um projeto tem um formulário ativo (config JSONB com array de campos: label, type [text|select|textarea|number], required, options).
+  - Optamos por JSONB em vez de tabelas normalizadas de campos para flexibilidade real de formulários dinâmicos (padrão industry practice para builder de forms).
+
+• ENTIDADE INSCRIÇÃO (APPLICATION):
+  - Relacionamento N:N resolvido entre Usuario x Projeto com atributos (status, resposta_formulario, parecer_ong, data_inscricao).
+  - UNIQUE(usuario_id, projeto_id): cidadão não pode se inscrever duas vezes no mesmo projeto.
+  - Ciclo de vida: pendente -> aprovada | rejeitada (transições controladas por trigger).
+
+• ENTIDADE GALERIA:
+  - 1..N imagens por ONG, ordenáveis, armazenadas no Supabase Storage (bucket 'galeria-ongs') com URL pública.
+
+3.2 Modelo Lógico (Tabelas, Tipos e Constraints)
+(O DDL completo com RLS e Triggers está no arquivo 02_Supabase_Database.sql)
+
+TABELA: profiles_usuarios
+  id UUID PK REFERENCES auth.users(id) ON DELETE CASCADE
+  nome_completo VARCHAR(120) NOT NULL
+  whatsapp VARCHAR(20) NOT NULL
+  cpf CHAR(11) NOT NULL UNIQUE (somente dígitos)
+  email VARCHAR(255) NOT NULL
+  rede_social VARCHAR(140) NULL
+  cep CHAR(8) NOT NULL
+  estado CHAR(2) NOT NULL
+  cidade VARCHAR(80) NOT NULL
+  bairro VARCHAR(80) NOT NULL
+  bio TEXT NULL (max 300 chars via CHECK)
+  foto_url TEXT NULL
+  criado_em TIMESTAMPTZ DEFAULT now()
+  atualizado_em TIMESTAMPTZ DEFAULT now()
+
+TABELA: profiles_ongs
+  id UUID PK REFERENCES auth.users(id) ON DELETE CASCADE
+  nome_ong VARCHAR(120) NOT NULL
+  telefone VARCHAR(20) NOT NULL
+  rede_social VARCHAR(140) NULL
+  documento VARCHAR(18) NOT NULL UNIQUE (CPF ou CNPJ formatado)
+  cep CHAR(8) NOT NULL
+  estado CHAR(2) NOT NULL
+  cidade VARCHAR(80) NOT NULL
+  bairro VARCHAR(80) NOT NULL
+  bio/finalidade TEXT NOT NULL
+  publico_alvo TEXT NULL
+  foto_url TEXT NULL
+  verificado BOOLEAN DEFAULT false
+  criado_em / atualizado_em TIMESTAMPTZ
+
+TABELA: projects
+  id UUID PK
+  ong_id UUID NOT NULL REFERENCES profiles_ongs(id) ON DELETE CASCADE
+  titulo VARCHAR(140) NOT NULL
+  descricao TEXT NOT NULL
+  area VARCHAR(60) NOT NULL  -- ex: Educação, Saúde, Direitos Humanos
+  vagas INT CHECK (vagas > 0)
+  status project_status ENUM ('rascunho','aberto','encerrado') DEFAULT 'aberto'
+  prazo_inscricao DATE NULL
+  criado_em / atualizado_em
+
+TABELA: custom_forms
+  id UUID PK
+  project_id UUID NOT NULL UNIQUE REFERENCES projects(id) ON DELETE CASCADE
+  estrutura JSONB NOT NULL  -- {"campos":[{"id","label","type","required","options"}]}
+
+TABELA: applications
+  id UUID PK
+  usuario_id UUID NOT NULL REFERENCES profiles_usuarios(id) ON DELETE CASCADE
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE
+  respostas JSONB NOT NULL
+  status app_status ENUM ('pendente','aprovada','rejeitada') DEFAULT 'pendente'
+  parecer_ong TEXT NULL
+  inscrito_em TIMESTAMPTZ DEFAULT now()
+  decidido_em TIMESTAMPTZ NULL
+  UNIQUE(usuario_id, project_id)
+
+TABELA: galleries
+  id UUID PK
+  ong_id UUID NOT NULL REFERENCES profiles_ongs(id) ON DELETE CASCADE
+  storage_path VARCHAR(255) NOT NULL
+  legenda VARCHAR(140) NULL
+  ordem SMALLINT DEFAULT 0
+  criado_em TIMESTAMPTZ DEFAULT now()
+
+ÍNDICES DE PERFORMANCE:
+  idx_projects_localizacao ON projects(estado_sede derivado via JOIN) — aplicado como índice funcional em profiles_ongs(estado, cidade, bairro)
+  idx_applications_status ON applications(status)
+  idx_apps_usuario ON applications(usuario_id)
+  idx_projects_ong ON projects(ong_id)
+  GIN index em custom_forms.estrutura para busca de campos
+
+---------------------------------------------------------------------
+4. ESTRUTURA DE PASTAS SUGERIDA PARA O FRONTEND
+---------------------------------------------------------------------
+
+localizafavela/
+│
+├── index.html                  # Home pública (manifesto + impacto + CTA login/cadastro)
+├── login.html                  # Login unificado (toggle Usuário CPF / ONG Documento)
+├── cadastro.html               # Cadastro em 2 fluxos (tabs Usuário | ONG)
+│
+├── usuario/
+│   ├── dashboard.html          # Feed de projetos + filtros Estado/Cidade/Bairro
+│   ├── perfil.html             # Foto, bio, personalização
+│   ├── inscricoes.html         # Histórico de inscrições + status
+│   └── inscription-form.html   # Página do formulário dinâmico da ONG
+│
+├── ong/
+│   ├── dashboard.html          # Visão geral (projetos, inscritos recentes)
+│   ├── perfil.html             # Finalidade, público-alvo, galeria de fotos
+│   ├── projetos.html           # CRUD de projetos/processos seletivos
+│   ├── form-builder.html       # Criador de formulários dinâmicos
+│   └── triagem.html            # Lista de inscritos → aprovar/rejeitar → wa.me/email
+│
+├── css/
+│   ├── reset.css               # Reset + box-sizing + normalize leve
+│   ├── tokens.css              # CSS Variables: paleta, tipografia, espaçamento, sombras
+│   ├── layout.css              # Grid base, containers, header/footer responsivos
+│   ├── components.css          # Botões, cards de ONG, inputs, badges de status, modal
+│   └── pages.css               # Estilos específicos por tela (hero, dashboards)
+│
+├── js/
+│   ├── config/
+│   │   └── supabase.js         # Cliente Supabase (URL + anon key)
+│   ├── core/
+│   │   ├── auth.js             # signUp/signIn, guard de sessão, logout, roles
+│   │   ├── validators.js       # CPF, CNPJ, senha forte, WhatsApp, CEP (regex + dígitos)
+│   │   └── cep-api.js          # Busca automática Estado/Cidade/Bairro via ViaCEP
+│   ├── services/
+│   │   ├── projects.js         # Consultas filtradas ao Supabase
+│   │   ├── applications.js     # Inscrição, histórico, triagem
+│   │   ├── forms.js            # Render/parse do JSONB do formulário dinâmico
+│   │   └── profile.js          # Upload avatar/galeria (Storage) + updates
+│   ├── ui/
+│   │   ├── toast.js            # Micro-interações de feedback
+│   │   ├── modal.js
+│   │   └── loading.js          # Skeleton screens
+│   └── pages/
+│       ├── home.js
+│       ├── login.js
+│       ├── cadastro.js
+│       ├── user-dashboard.js
+│       ├── user-profile.js
+│       ├── ong-dashboard.js
+│       ├── ong-triagem.js
+│       └── ong-form-builder.js
+│
+├── assets/
+│   ├── img/                    # Logo, ilustrações hero, favicon
+│   └── icons/                  # SVGs inline-able
+│
+└── utils/
+    └── wa-link.js              # Montador de links wa.me com mensagem pré-escrita
+
+Observações de arquitetura:
+- Páginas autenticadas carregam js/core/auth.js primeiro (guard: sem sessão → redirect login.html).
+- Separação role-based: pastas /usuario e /ong só acessíveis pelo tipo de conta (claim no JWT + checagem nas tabelas profiles).
+- Nenhum framework: módulos ES6 (import/export) com <script type="module">.
+
+=====================================================================
+FIM DA FASE 1 — LocalizaFavela | PIE UniSales | ODS 10 & 11
+=====================================================================
