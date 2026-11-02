@@ -6,13 +6,26 @@
    Supabase Dashboard → Project Settings → API
    ===================================================================== */
 
-const SUPABASE_URL = 'https://SEU-PROJETO.supabase.co';
-const SUPABASE_ANON_KEY = 'SUA_ANON_PUBLIC_KEY';
+// Credenciais reais do projeto LocalizaFavela (Supabase) — chave publishable é pública por design.
+const SUPABASE_URL = 'https://zlglkqbdgrpkezhjisil.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_TFIDOqI8cWTagIRzF59nDQ_HGFDMCFG';
 
 // Expõe uma única instância global para todos os módulos ES6.
 // (CDN UMD do supabase-js já está carregado no <head> das páginas.)
 window.LF_SUPABASE_URL = SUPABASE_URL;
-window.LF_SUPABASE = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const _sbConfigurado =
+  !!SUPABASE_URL && SUPABASE_URL.indexOf('SEU-PROJETO') === -1 &&
+  !!SUPABASE_ANON_KEY && SUPABASE_ANON_KEY.indexOf('SUA_') !== 0;
+
+window.LF_SUPABASE_CONFIGURADO = _sbConfigurado;
+window.LF_SUPABASE = _sbConfigurado
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+if (!window.LF_SUPABASE) {
+  console.warn('[LocalizaFavela] Supabase não configurado — edite js/config/supabase.js');
+}
 
 /**
  * Guarda de sessão reutilizável por todas as páginas autenticadas.
