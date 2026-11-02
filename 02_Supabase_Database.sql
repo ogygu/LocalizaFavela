@@ -3,29 +3,49 @@
 -- PIE UniSales | ODS 10 & ODS 11
 -- Equipe: Gustavo de Paula Bonjardim | Andressa Gonçalves | Giovanna Vargas
 -- Executar no SQL Editor do Supabase, na ordem, em um projeto novo.
+-- VERSÃO CORRIGIDA (2026-11-02): idempotente — pode ser colada por cima de
+-- um banco já existente sem estourar erro. Principais correções:
+--   • Views recriadas SEM as colunas inexistentes (campos/ativo/total_vagas)
+--     que causaram o erro "column f.ativo does not exist";
+--   • Aliases ong_estado/ong_cidade/ong_bairro exigidos pelo frontend;
+--   • Removido `security_invoker` (incompatível com a leitura pública);
+--   • CREATE TYPE/TABLE protegidos contra duplicidade;
+--   • Storage buckets via Dashboard (INSERT em storage.buckets é bloqueado).
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
--- 0. EXTENSÕES E TIPOS ENUM
+-- 0. LIMPEZA DE ARTEFATOS ANTIGOS/QUEBRADOS (segura, só remove o que falhou)
+-- ---------------------------------------------------------------------
+drop view if exists public.v_projects_feed;
+drop view if exists public.v_app_counts;
+
+-- ---------------------------------------------------------------------
+-- 1. EXTENSÕES E TIPOS ENUM
 -- ---------------------------------------------------------------------
 create extension if not exists "pgcrypto";      -- gen_random_uuid()
 create extension if not exists "citext";        -- e-mails case-insensitive
 
--- Status de um projeto/processo seletivo
-create type public.project_status as enum ('rascunho', 'aberto', 'encerrado');
+-- Status de um projeto/processo seletivo (idempotente)
+do $$ begin
+  create type public.project_status as enum ('rascunho', 'aberto', 'encerrado');
+exception when duplicate_object then null; end $$;
 
 -- Ciclo de vida da inscrição do voluntário/assistido
-create type public.app_status as enum ('pendente', 'aprovada', 'rejeitada');
+do $$ begin
+  create type public.app_status as enum ('pendente', 'aprovada', 'rejeitada');
+exception when duplicate_object then null; end $$;
 
 -- Tipo de conta (usada para rotear dashboards e policies)
-create type public.account_type as enum ('usuario', 'ong');
+do $$ begin
+  create type public.account_type as enum ('usuario', 'ong');
+exception when duplicate_object then null; end $$;
 
 -- ---------------------------------------------------------------------
--- 1. TABELAS
+-- 2. TABELAS (idempotentes: create table if not exists)
 -- ---------------------------------------------------------------------
 
--- 1.1 PERFIL DE USUÁRIO COMUM (espelho de auth.users)
-create table public.profiles_usuarios (
+-- 2.1 PERFIL DE USUÁRIO COMUM (espelho de auth.users)
+create table if not exists public.profiles_usuarios (
     id              uuid primary key references auth.users (id) on delete cascade,
     nome_completo   varchar(120) not null,
     whatsapp        varchar(20)  not null,
@@ -48,8 +68,8 @@ create table public.profiles_usuarios (
 comment on table public.profiles_usuarios is
   'Cidadãos que buscam projetos sociais; login por CPF + senha (email real no auth).';
 
--- 1.2 PERFIL DE ONG / PROJETO SOCIAL
-create table public.profiles_ongs (
+-- 2.2 PERFIL DE ONG / PROJETO SOCIAL
+create table if not exists public.profiles_ongs (
     id             uuid primary key references auth.users (id) on delete cascade,
     nome_ong       varchar(120) not null,
     telefone       varchar(20)  not null,
@@ -73,8 +93,8 @@ create table public.profiles_ongs (
 comment on table public.profiles_ongs is
   'Organizações da sociedade civil; login por CPF/CNPJ + senha.';
 
--- 1.3 PROJETOS SOCIAIS / PROCESSOS SELETIVOS
-create table public.projects (
+-- 2.3 PROJETOS SOCIAIS / PROCESSOS SELETIVOS
+create table if not exists public.projects (
     id              uuid primary key default gen_random_uuid(),
     ong_id          uuid         not null references public.profiles_ongs (id) on delete cascade,
     titulo          varchar(140) not null,
@@ -87,8 +107,8 @@ create table public.projects (
     atualizado_em   timestamptz  not null default now()
 );
 
--- 1.4 FORMULÁRIOS DINÂMICOS (1 por projeto) — estrutura em JSONB
-create table public.custom_forms (
+-- 2.4 FORMULÁRIOS DINÂMICOS (1 por projeto) — estrutura em JSONB
+create table if not exists public.custom_forms (
     id          uuid primary key default gen_random_uuid(),
     project_id  uuid    not null unique references public.projects (id) on delete cascade,
     estrutura   jsonb   not null,
@@ -100,8 +120,8 @@ create table public.custom_forms (
     constraint chk_estrutura_obj check (jsonb_typeof(estrutura) = 'object')
 );
 
--- 1.5 INSCRIÇÕES (N:N Usuario x Projeto com atributos)
-create table public.applications (
+-- 2.5 INSCRIÇÕES (N:N Usuario x Projeto com atributos)
+create table if not exists public.applications (
     id           uuid primary key default gen_random_uuid(),
     usuario_id   uuid    not null references public.profiles_usuarios (id) on delete cascade,
     project_id   uuid    not null references public.projects (id) on delete cascade,
@@ -113,8 +133,8 @@ create table public.applications (
     constraint uq_inscricao_unica unique (usuario_id, project_id)
 );
 
--- 1.6 GALERIA DE FOTOS DA ONG (arquivos no Storage, metadados aqui)
-create table public.galleries (
+-- 2.6 GALERIA DE FOTOS DA ONG (arquivos no Storage, metadados aqui)
+create table if not exists public.galleries (
     id            uuid primary key default gen_random_uuid(),
     ong_id        uuid    not null references public.profiles_ongs (id) on delete cascade,
     storage_path  varchar(255) not null,   -- caminho dentro do bucket 'galeria-ongs'
@@ -124,23 +144,23 @@ create table public.galleries (
 );
 
 -- ---------------------------------------------------------------------
--- 2. ÍNDICES DE PERFORMANCE (filtros por localização e triagem)
+-- 3. ÍNDICES DE PERFORMANCE (filtros por localização e triagem)
 -- ---------------------------------------------------------------------
-create index idx_ongs_localizacao      on public.profiles_ongs (estado, cidade, bairro);
-create index idx_usuarios_localizacao  on public.profiles_usuarios (estado, cidade, bairro);
-create index idx_projects_ong          on public.projects (ong_id);
-create index idx_projects_status       on public.projects (status);
-create index idx_projects_localidade   on public.projects (status) ; -- combinado com JOIN em profiles_ongs
-create index idx_apps_usuario          on public.applications (usuario_id);
-create index idx_apps_project_status   on public.applications (project_id, status);
-create index idx_galleries_ong         on public.galleries (ong_id, ordem);
-create index idx_forms_estrutura_gin   on public.custom_forms using gin (estrutura);
+create index if not exists idx_ongs_localizacao      on public.profiles_ongs (estado, cidade, bairro);
+create index if not exists idx_usuarios_localizacao  on public.profiles_usuarios (estado, cidade, bairro);
+create index if not exists idx_projects_ong          on public.projects (ong_id);
+create index if not exists idx_projects_status       on public.projects (status);
+create index if not exists idx_projects_localidade   on public.projects (status) ; -- combinado com JOIN em profiles_ongs
+create index if not exists idx_apps_usuario          on public.applications (usuario_id);
+create index if not exists idx_apps_project_status   on public.applications (project_id, status);
+create index if not exists idx_galleries_ong         on public.galleries (ong_id, ordem);
+create index if not exists idx_forms_estrutura_gin   on public.custom_forms using gin (estrutura);
 
 -- ---------------------------------------------------------------------
--- 3. TRIGGERS E FUNÇÕES
+-- 4. TRIGGERS E FUNÇÕES
 -- ---------------------------------------------------------------------
 
--- 3.1 Atualizar automaticamente o campo atualizado_em
+-- 4.1 Atualizar automaticamente o campo atualizado_em
 create or replace function public.fn_set_atualizado_em()
 returns trigger
 language plpgsql
@@ -151,19 +171,22 @@ begin
 end;
 $$;
 
+drop trigger if exists trg_upd_profiles_usuarios on public.profiles_usuarios;
 create trigger trg_upd_profiles_usuarios
 before update on public.profiles_usuarios
 for each row execute function public.fn_set_atualizado_em();
 
+drop trigger if exists trg_upd_profiles_ongs on public.profiles_ongs;
 create trigger trg_upd_profiles_ongs
 before update on public.profiles_ongs
 for each row execute function public.fn_set_atualizado_em();
 
+drop trigger if exists trg_upd_projects on public.projects;
 create trigger trg_upd_projects
 before update on public.projects
 for each row execute function public.fn_set_atualizado_em();
 
--- 3.2 Registrar quando a inscrição foi decidida (aprovação/rejeição)
+-- 4.2 Registrar quando a inscrição foi decidida (aprovação/rejeição)
 create or replace function public.fn_marcar_decisao()
 returns trigger
 language plpgsql
@@ -180,11 +203,12 @@ begin
 end;
 $$;
 
+drop trigger if exists trg_apps_decisao on public.applications;
 create trigger trg_apps_decisao
 before update on public.applications
 for each row execute function public.fn_marcar_decisao();
 
--- 3.3 Impedir transições inválidas de status (pendente -> aprovada/rejeitada é irreversível)
+-- 4.3 Impedir transições inválidas de status (pendente -> aprovada/rejeitada é irreversível)
 create or replace function public.fn_valida_transicao_app()
 returns trigger
 language plpgsql
@@ -197,11 +221,12 @@ begin
 end;
 $$;
 
+drop trigger if exists trg_apps_transicao on public.applications;
 create trigger trg_apps_transicao
 before update on public.applications
 for each row execute function public.fn_valida_transicao_app();
 
--- 3.4 AUTO-PERFIL AO CRIAR CONTA (trigger em auth.users)
+-- 4.4 AUTO-PERFIL AO CRIAR CONTA (trigger em auth.users)
 -- O front envia o tipo de conta e os dados extras via user_metadata no signUp:
 --   metadata: { tipo_conta: 'usuario'|'ong', nome, whatsapp/cpf/documento, cep, ... }
 create or replace function public.fn_criar_perfil_na_signup()
@@ -243,9 +268,11 @@ begin
 end;
 $$;
 
-create trigger trg_on_auth_user_created
-after insert on auth.users
-for each row execute function public.fn_criar_perfil_na_signup();
+do $$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'trg_on_auth_user_created' and not tgisinternal) then
+    execute 'create trigger trg_on_auth_user_created after insert on auth.users for each row execute function public.fn_criar_perfil_na_signup()';
+  end if;
+end $$;
 
 -- Observação acadêmica: como o INSERT acima usa valores placeholder quando o
 -- client ainda não completou o formulário estendido, a tela de cadastro deve
@@ -254,7 +281,7 @@ for each row execute function public.fn_criar_perfil_na_signup();
 -- robusta: submeter TODOS os campos no user_metadata do signUp — recomendado.
 
 -- ---------------------------------------------------------------------
--- 4. ROW LEVEL SECURITY (RLS)
+-- 5. ROW LEVEL SECURITY (RLS)
 -- ---------------------------------------------------------------------
 alter table public.profiles_usuarios enable row level security;
 alter table public.profiles_ongs     enable row level security;
@@ -263,7 +290,7 @@ alter table public.custom_forms      enable row level security;
 alter table public.applications      enable row level security;
 alter table public.galleries         enable row level security;
 
--- 4.1 HELPERS (evitam repetição e recursion em policies)
+-- 5.1 HELPERS (evitam repetição e recursion em policies)
 create or replace function public.is_ong()
 returns boolean
 language sql stable security definer set search_path = public
@@ -278,45 +305,56 @@ as $$
     select exists (select 1 from public.profiles_usuarios u where u.id = auth.uid());
 $$;
 
--- 4.2 PROFILES_USUARIOS
+-- 5.2 PROFILES_USUARIOS
 -- Ler: o próprio dono; ONGs podem ler dados de inscritos (nome/whatsapp/email p/ contato)
+drop policy if exists p_usu_select on public.profiles_usuarios;
 create policy p_usu_select on public.profiles_usuarios
 for select using (id = auth.uid() or public.is_ong());
 
+drop policy if exists p_usu_insert on public.profiles_usuarios;
 create policy p_usu_insert on public.profiles_usuarios
 for insert with check (id = auth.uid());
 
+drop policy if exists p_usu_update on public.profiles_usuarios;
 create policy p_usu_update on public.profiles_usuarios
 for update using (id = auth.uid()) with check (id = auth.uid());
 -- Usuário NUNCA edita o perfil de outro usuário.
 
--- 4.3 PROFILES_ONGS
+-- 5.3 PROFILES_ONGS
 -- Pública: qualquer pessoa autenticada ou anônima vê cards de ONG (Home/busca)
+drop policy if exists p_ong_select on public.profiles_ongs;
 create policy p_ong_select on public.profiles_ongs
 for select using (true);
 
+drop policy if exists p_ong_insert on public.profiles_ongs;
 create policy p_ong_insert on public.profiles_ongs
 for insert with check (id = auth.uid());
 
+drop policy if exists p_ong_update on public.profiles_ongs;
 create policy p_ong_update on public.profiles_ongs
 for update using (id = auth.uid()) with check (id = auth.uid());
 -- ONG NUNCA edita outra ONG; campo verificado é controlado pela equipe/admin.
 
--- 4.4 PROJECTS
+-- 5.4 PROJECTS
 -- Público lê apenas projetos abertos; ONG dona lê todos os seus (inclui rascunhos)
+drop policy if exists p_proj_select on public.projects;
 create policy p_proj_select on public.projects
 for select using (status = 'aberto' or ong_id = auth.uid());
 
+drop policy if exists p_proj_insert on public.projects;
 create policy p_proj_insert on public.projects
 for insert with check (ong_id = auth.uid() and public.is_ong());
 
+drop policy if exists p_proj_update on public.projects;
 create policy p_proj_update on public.projects
 for update using (ong_id = auth.uid()) with check (ong_id = auth.uid());
 
+drop policy if exists p_proj_delete on public.projects;
 create policy p_proj_delete on public.projects
 for delete using (ong_id = auth.uid());
 
--- 4.5 CUSTOM_FORMS
+-- 5.5 CUSTOM_FORMS
+drop policy if exists p_form_select on public.custom_forms;
 create policy p_form_select on public.custom_forms
 for select using (
     exists (select 1 from public.projects p
@@ -324,12 +362,14 @@ for select using (
               and (p.status = 'aberto' or p.ong_id = auth.uid()))
 );
 
+drop policy if exists p_form_write on public.custom_forms;
 create policy p_form_write on public.custom_forms
 for insert with check (
     exists (select 1 from public.projects p
             where p.id = project_id and p.ong_id = auth.uid())
 );
 
+drop policy if exists p_form_update on public.custom_forms;
 create policy p_form_update on public.custom_forms
 for update using (
     exists (select 1 from public.projects p
@@ -339,18 +379,21 @@ for update using (
             where p.id = project_id and p.ong_id = auth.uid())
 );
 
+drop policy if exists p_form_delete on public.custom_forms;
 create policy p_form_delete on public.custom_forms
 for delete using (
     exists (select 1 from public.projects p
             where p.id = project_id and p.ong_id = auth.uid())
 );
 
--- 4.6 APPLICATIONS (núcleo sensível da privacidade)
+-- 5.6 APPLICATIONS (núcleo sensível da privacidade)
 -- Usuário: vê SOMENTE as próprias inscrições.
+drop policy if exists p_app_select_usuario on public.applications;
 create policy p_app_select_usuario on public.applications
 for select using (usuario_id = auth.uid());
 
 -- ONG: vê inscrições dos projetos que ELA gerencia (via subquery, nunca tabela inteira)
+drop policy if exists p_app_select_ong on public.applications;
 create policy p_app_select_ong on public.applications
 for select using (
     exists (select 1 from public.projects p
@@ -359,6 +402,7 @@ for select using (
 );
 
 -- Usuário: inscreve-se usando o próprio id, apenas em projeto aberto
+drop policy if exists p_app_insert on public.applications;
 create policy p_app_insert on public.applications
 for insert with check (
     usuario_id = auth.uid()
@@ -369,6 +413,7 @@ for insert with check (
 
 -- ONG: só pode atualizar status/parecer das inscrições dos próprios projetos.
 -- (Proibido alterar respostas/usuario_id — garantido também pelo trigger.)
+drop policy if exists p_app_update_ong on public.applications;
 create policy p_app_update_ong on public.applications
 for update using (
     exists (select 1 from public.projects p
@@ -381,43 +426,59 @@ for update using (
 );
 
 -- Usuário pode DESISTIR (delete) da própria inscrição enquanto pendente
+drop policy if exists p_app_delete on public.applications;
 create policy p_app_delete on public.applications
 for delete using (usuario_id = auth.uid() and status = 'pendente');
 
--- 4.7 GALLERIES
+-- 5.7 GALLERIES
+drop policy if exists p_gal_select on public.galleries;
 create policy p_gal_select on public.galleries
 for select using (true);  -- galeria é vitrine pública da ONG
 
+drop policy if exists p_gal_insert on public.galleries;
 create policy p_gal_insert on public.galleries
 for insert with check (ong_id = auth.uid() and public.is_ong());
 
+drop policy if exists p_gal_update on public.galleries;
 create policy p_gal_update on public.galleries
 for update using (ong_id = auth.uid()) with check (ong_id = auth.uid());
 
+drop policy if exists p_gal_delete on public.galleries;
 create policy p_gal_delete on public.galleries
 for delete using (ong_id = auth.uid());
 
 -- ---------------------------------------------------------------------
--- 5. STORAGE BUCKETS (via Dashboard — NÃO por SQL)
--- Os buckets 'avatares' e 'galeria-ongs' devem ser criados em
--- Storage → New bucket (ambos PUBLIC), pois a API pública do Supabase
--- não permite INSERT direto em storage.buckets pelo editor SQL padrão.
--- As policies de escrita isolada por pasta {auth.uid()}/ ficam abaixo.
+-- 6. STORAGE BUCKETS
+-- Tentativa via SQL (idempotente). Se o seu plano/permissões bloquearem o
+-- INSERT em storage.buckets, crie manualmente no Dashboard:
+--   Storage → New bucket → "avatares" (public) e "galeria-ongs" (public).
+-- As policies de escrita isolada por pasta {auth.uid()}/ ficam logo abaixo.
 -- ---------------------------------------------------------------------
+do $$ begin
+  insert into storage.buckets (id, name, public)
+  values ('avatares', 'avatares', true),
+         ('galeria-ongs', 'galeria-ongs', true)
+  on conflict (id) do nothing;
+exception when insufficient_privilege then
+  raise notice 'Crie os buckets avatares e galeria-ongs manualmente no Dashboard (Storage).';
+end $$;
 
 -- Upload: cada usuário/ONG escreve apenas na própria pasta {auth.uid()}/
+drop policy if exists st_upload_own on storage.objects;
 create policy st_upload_own on storage.objects
 for insert with check (
     bucket_id in ('avatares','galeria-ongs')
     and (storage.foldername(name))[1] = auth.uid()::text
 );
 
+drop policy if exists st_update_own on storage.objects;
 create policy st_update_own on storage.objects
 for update using (
     bucket_id in ('avatares','galeria-ongs')
     and (storage.foldername(name))[1] = auth.uid()::text
 );
 
+drop policy if exists st_delete_own on storage.objects;
 create policy st_delete_own on storage.objects
 for delete using (
     bucket_id in ('avatares','galeria-ongs')
@@ -426,7 +487,7 @@ for delete using (
 -- Leitura é pública (buckets public=true) para renderizar cards e galerias.
 
 -- ---------------------------------------------------------------------
--- 5.5 RPC fn_resolve_login — LOGIN POR DOCUMENTO (regra de negócio do PIE)
+-- 6.5 RPC fn_resolve_login — LOGIN POR DOCUMENTO (regra de negócio do PIE)
 -- O Supabase Auth autentica por e-mail; a exigência acadêmica é entrar com
 -- CPF (usuário) ou CPF/CNPJ (ONG). Esta função SECURITY DEFINER resolve o
 -- documento → e-mail cadastrado, devolvendo APENAS o e-mail (nunca outros
@@ -452,7 +513,7 @@ comment on function public.fn_resolve_login(text) is
   'Mapeia CPF (usuario) ou CPF/CNPJ (ONG) para o e-mail de acesso. Uso exclusivo do fluxo de login.';
 
 -- ---------------------------------------------------------------------
--- 6. VIEWS DE APOIO AO FRONTEND
+-- 7. VIEWS DE APOIO AO FRONTEND
 -- ---------------------------------------------------------------------
 
 -- Feed de projetos com dados da ONG sede (usado no dashboard do usuário)
@@ -492,11 +553,6 @@ select
 from public.applications a
 group by a.project_id;
 
--- Compatibilidade com consultas antigas que usavam os nomes no feminino:
-create or replace view public.v_app_counts_feminino as
-select project_id, pendentes as pendentes, aprovados as aprovadas, rejeitados as rejeitadas
-from public.v_app_counts;
-
 -- NOTA (decisão de projeto, 2026-11): NÃO usamos `security_invoker` nestas
 -- views. Motivo: v_projects_feed faz JOIN com profiles_ongs, cuja policy é
 -- "leitura pública" — sob security_invoker isso vazaria finalidade/bairro
@@ -507,7 +563,7 @@ from public.v_app_counts;
 -- inscrições continuam lidas direto da tabela applications (RLS integral).
 
 -- ---------------------------------------------------------------------
--- 7. RESUMO DAS POLÍTICAS (para a documentação do PIE)
+-- 8. RESUMO DAS POLÍTICAS (para a documentação do PIE)
 -- ---------------------------------------------------------------------
 -- • Usuário comum: lê/edita apenas o PRÓPRIO perfil; inscreve-se em projetos
 --   abertos; vê apenas as PRÓPRIAS inscrições; pode desistir se pendente.
