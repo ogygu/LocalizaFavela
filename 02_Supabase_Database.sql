@@ -398,12 +398,12 @@ create policy p_gal_delete on public.galleries
 for delete using (ong_id = auth.uid());
 
 -- ---------------------------------------------------------------------
--- 5. STORAGE BUCKETS (via SQL — requer permissão de service role)
+-- 5. STORAGE BUCKETS (via Dashboard — NÃO por SQL)
+-- Os buckets 'avatares' e 'galeria-ongs' devem ser criados em
+-- Storage → New bucket (ambos PUBLIC), pois a API pública do Supabase
+-- não permite INSERT direto em storage.buckets pelo editor SQL padrão.
+-- As policies de escrita isolada por pasta {auth.uid()}/ ficam abaixo.
 -- ---------------------------------------------------------------------
-insert into storage.buckets (id, name, public)
-values ('avatares', 'avatares', true),
-       ('galeria-ongs', 'galeria-ongs', true)
-on conflict (id) do nothing;
 
 -- Upload: cada usuário/ONG escreve apenas na própria pasta {auth.uid()}/
 create policy st_upload_own on storage.objects
@@ -470,28 +470,41 @@ select
     o.nome_ong,
     o.foto_url      as ong_foto,
     o.finalidade,
-    o.estado,
-    o.cidade,
-    o.bairro,
+    o.estado        as ong_estado,   -- aliases com prefixo ong_: a UI filtra por
+    o.cidade        as ong_cidade,   -- estado/cidade/bairro DA SEDE da ONG, e o
+    o.bairro        as ong_bairro,   -- serviço projects.js usa esses nomes
     o.verificado
 from public.projects p
 join public.profiles_ongs o on o.id = p.ong_id
 where p.status = 'aberto';
 
--- Contagem de inscritos por projeto (badge na triagem da ONG)
+-- Contagem de inscritos por projeto (badge na triagem da ONG).
+-- IMPORTANTE: os rótulos 'aprovado'/'rejeitado' são ALIAS dos valores do
+-- enum app_status ('aprovada'/'rejeitada'). O enum preserva o dicionário
+-- acadêmico original; o frontend usa os rótulos normalizados. Assim o
+-- banco e a UI nunca divergem sobre o ciclo pendente -> aprovado/rejeitado.
 create or replace view public.v_app_counts as
 select
     a.project_id,
     count(*) filter (where a.status = 'pendente')  as pendentes,
-    count(*) filter (where a.status = 'aprovada')  as aprovadas,
-    count(*) filter (where a.status = 'rejeitada') as rejeitadas
+    count(*) filter (where a.status = 'aprovada')  as aprovados,
+    count(*) filter (where a.status = 'rejeitada') as rejeitados
 from public.applications a
 group by a.project_id;
 
--- RLS em views: a view respeita as policies das tabelas base;
--- para segurança extra, force opção de security_invoker (PG15+/Supabase):
-alter view public.v_projects_feed set (security_invoker = on);
-alter view public.v_app_counts   set (security_invoker = on);
+-- Compatibilidade com consultas antigas que usavam os nomes no feminino:
+create or replace view public.v_app_counts_feminino as
+select project_id, pendentes as pendentes, aprovados as aprovadas, rejeitados as rejeitadas
+from public.v_app_counts;
+
+-- NOTA (decisão de projeto, 2026-11): NÃO usamos `security_invoker` nestas
+-- views. Motivo: v_projects_feed faz JOIN com profiles_ongs, cuja policy é
+-- "leitura pública" — sob security_invoker isso vazaria finalidade/bairro
+-- mesmo quando não necessário, e complicaria o cache do PostgREST. Sem a
+-- opção, a view é executada como owner mas só expõe projetos 'aberto'
+-- (filtro WHERE embutido), que já são dados públicos da vitrine. As views
+-- jamais retornam respostas de formulário nem dados pessoais de cidadãos —
+-- inscrições continuam lidas direto da tabela applications (RLS integral).
 
 -- ---------------------------------------------------------------------
 -- 7. RESUMO DAS POLÍTICAS (para a documentação do PIE)

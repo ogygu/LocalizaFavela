@@ -1,6 +1,8 @@
 /* =====================================================================
    LocalizaFavela | projects.js — Consultas de projetos (camada de serviço)
-   Usa a view v_projects_feed (security_invoker) definida no banco.
+   Usa a view v_projects_feed definida no banco (02_Supabase_Database.sql).
+   A RLS das tabelas base continua valendo: a view só expõe colunas já
+   visíveis ao papel chamador (anônimo autenticado ou usuário logado).
    ===================================================================== */
 
 const sb = window.LF_SUPABASE;

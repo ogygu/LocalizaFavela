@@ -6,6 +6,10 @@
 
 const sb = window.LF_SUPABASE;
 
+/** Converte rótulos do enum do banco (aprovada/rejeitada) para a UI (aprovado/rejeitado). */
+const normalizarApp = (a) => (a?.status === 'aprovada' ? { ...a, status: 'aprovado' }
+  : a?.status === 'rejeitada' ? { ...a, status: 'rejeitado' } : a);
+
 /** Inscrições dos projetos da ONG (com perfil público do candidato). */
 export async function listarCandidatos(ongId, { status, projectId } = {}) {
   let query = sb.from('applications')
@@ -22,13 +26,16 @@ export async function listarCandidatos(ongId, { status, projectId } = {}) {
 
   const { data, error } = await query.order('inscrito_em', { ascending: true });
   if (error) throw new Error('Não foi possível carregar as inscrições recebidas.');
-  return data ?? [];
+  // O enum do banco usa 'aprovada'/'rejeitada'; a UI padroniza 'aprovado'/'rejeitado'.
+  return (data ?? []).map(normalizarApp);
 }
 
 /** Decisão única: aprovado|rejeitado + parecer obrigatório (UX de respeito). */
 export async function decidirInscricao(applicationId, status, parecer) {
+  const statusBanco = status === 'aprovado' ? 'aprovada'
+                    : status === 'rejeitado' ? 'rejeitada' : status;
   const { error } = await sb.from('applications')
-    .update({ status, parecer_ong: parecer, decidido_em: new Date().toISOString() })
+    .update({ status: statusBanco, parecer_ong: parecer }) // decidido_em é preenchido pelo trigger fn_marcar_decisao
     .eq('id', applicationId)
     .eq('status', 'pendente'); // nunca re-decidir
   if (error) throw new Error('Esta inscrição já foi decidida ou não existe mais.');

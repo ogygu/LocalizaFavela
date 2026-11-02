@@ -5,6 +5,10 @@
 
 const sb = window.LF_SUPABASE;
 
+/** Converte rótulos do enum do banco (aprovada/rejeitada) para a UI (aprovado/rejeitado). */
+const normalizarApp = (a) => (a?.status === 'aprovada' ? { ...a, status: 'aprovado' }
+  : a?.status === 'rejeitada' ? { ...a, status: 'rejeitado' } : a);
+
 /* ---------- LADO USUÁRIO ---------- */
 
 /** Envia inscrição com respostas do formulário dinâmico. */
@@ -30,7 +34,8 @@ export async function minhasInscricoes(usuarioId) {
     .eq('usuario_id', usuarioId)
     .order('inscrito_em', { ascending: false });
   if (error) throw new Error('Falha ao carregar seu histórico.');
-  return data ?? [];
+  // enum do banco ('aprovada'/'rejeitada') -> rótulos da UI ('aprovado'/'rejeitado')
+  return (data ?? []).map(normalizarApp);
 }
 
 /** IDs de projetos nos quais o usuário já se inscreveu (para marcar cards). */
@@ -54,7 +59,7 @@ export async function inscritosDaOng(ongId, { status, projectId } = {}) {
 
   const { data, error } = await query;
   if (error) throw new Error('Falha ao carregar inscritos.');
-  return data ?? [];
+  return (data ?? []).map(normalizarApp);
 }
 
 /** Aprova/rejeita inscrição. O trigger fn_marcar_decisao preenche decidido_em. */
@@ -62,19 +67,22 @@ export async function decidirInscricao(applicationId, status, parecer = null) {
   if (status === 'rejeitado' && !parecer?.trim()) {
     throw new Error('Ao rejeitar, escreva um parecer — respeito ao candidato (ODS 10).');
   }
+  const statusBanco = status === 'aprovado' ? 'aprovada'
+                    : status === 'rejeitado' ? 'rejeitada' : status;
   const { error } = await sb
     .from('applications')
-    .update({ status, parecer_ong: parecer })
-    .eq('id', applicationId);
+    .update({ status: statusBanco, parecer_ong: parecer }) // decidido_em: trigger fn_marcar_decisao
+    .eq('id', applicationId)
+    .eq('status', 'pendente'); // nunca re-decidir
   if (error) throw new Error('Esta inscrição já foi decidida (decisão é definitiva).');
   return true;
 }
 
-/** Contagem para os widgets do dashboard da ONG. */
+/** Contagem para os widgets do dashboard da ONG.
+ *  Nota: NÃO usamos a view v_app_counts aqui — views sem security_invoker
+ *  ignoram RLS e exporiam totais entre ONGs. A contagem via applications
+ *  respeita a policy "ONG vê só inscrições dos SEUS projetos". */
 export async function resumoTriagem(ongId) {
-  const { data } = await sb.rpc('v_app_counts', {}).then(r => ({ data: r.data }));
-  // fallback sem RPC: contagem client-side dos próprios projetos
-  if (data) return data;
   const apps = await inscritosDaOng(ongId);
   return {
     total: apps.length,
