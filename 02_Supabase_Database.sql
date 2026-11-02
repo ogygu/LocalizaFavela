@@ -226,43 +226,75 @@ create trigger trg_apps_transicao
 before update on public.applications
 for each row execute function public.fn_valida_transicao_app();
 
--- 4.4 AUTO-PERFIL AO CRIAR CONTA (trigger em auth.users)
+-- 4.4 AUTO-PERFIL AO CRIAR CONTA (trigger em auth.users) — v2 ROBUSTA
 -- O front envia o tipo de conta e os dados extras via user_metadata no signUp:
---   metadata: { tipo_conta: 'usuario'|'ong', nome, whatsapp/cpf/documento, cep, ... }
+--   metadata: { account_type|tipo_conta: 'usuario'|'ong', nome_completo/nome_ong,
+--               whatsapp/telefone, cpf/documento, rede_social, cep, estado,
+--               cidade, bairro | finalidade, publico_alvo }
+-- CORREÇÕES DA v2 (bugs reais encontrados testando contra o projeto no ar):
+--   a) A v1 só lia a chave 'tipo_conta', mas o frontend envia 'account_type'.
+--      Resultado: TODAS as contas (inclusive ONGs) caíam no ramo de usuário.
+--      Agora aceita ambos os nomes de chave.
+--   b) A v1 inseria placeholders vazios ('') quando faltava campo obrigatório,
+--      estourando as CHECK constraints (chk_cpf_digitos etc.) e derrubando o
+--      signUp inteiro com HTTP 500. Na prática isso transformou um único erro
+--      (e-mail banido pela Supabase → "Email address is banned") numa cascata
+--      de tentativas da equipe até bater no "email rate limit exceeded".
+--      Agora: se qualquer dado obrigatório vier ausente/inválido, a função
+--      NÃO insere perfil e NÃO quebra o signup (return new limpo).
 create or replace function public.fn_criar_perfil_na_signup()
 returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
 declare
-    m jsonb := new.raw_user_meta_data;
+    m        jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
+    v_tipo   text  := lower(coalesce(m->>'account_type', m->>'tipo_conta', 'usuario'));
+    v_cep    text  := regexp_replace(coalesce(m->>'cep', ''), '\D', '', 'g');
+    v_estado text  := upper(trim(coalesce(m->>'estado', '')));
+    v_whats  text  := regexp_replace(coalesce(m->>'whatsapp', m->>'telefone', ''), '[^\d+]', '', 'g');
+    v_doc    text  := regexp_replace(coalesce(m->>'cpf', m->>'documento', ''), '\D', '', 'g');
 begin
-    if m->>'tipo_conta' = 'ong' then
-        insert into public.profiles_ongs (id, nome_ong, telefone, documento, cep, estado, cidade, bairro, finalidade)
-        values (
-            new.id,
-            coalesce(m->>'nome_ong', 'ONG sem nome'),
-            coalesce(m->>'telefone', ''),
-            coalesce(m->>'documento', ''),
-            coalesce(m->>'cep', '00000000'),
-            coalesce(m->>'estado', 'SP'),
-            coalesce(m->>'cidade', ''),
-            coalesce(m->>'bairro', ''),
-            coalesce(m->>'finalidade', '')
-        ) on conflict (id) do nothing;
+    -- normalizações defensivas
+    if v_whats <> '' and left(v_whats, 1) <> '+' then v_whats := '+' || v_whats; end if;
+
+    if v_tipo = 'ong' then
+        if coalesce(trim(m->>'nome_ong'), '') = ''
+           or v_doc   !~ '^(\d{11}|\d{14})$'
+           or v_whats !~ '^\+\d{10,13}$'
+           or v_cep   !~ '^\d{8}$'
+           or v_estado not in ('AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
+                               'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO')
+           or coalesce(trim(m->>'cidade'), '') = ''
+           or coalesce(trim(m->>'bairro'), '') = ''
+           or coalesce(trim(m->>'finalidade'), '') = '' then
+            return new;  -- dados incompletos: não cria perfil, não derruba o signup
+        end if;
+        insert into public.profiles_ongs
+            (id, nome_ong, telefone, rede_social, documento, cep, estado, cidade, bairro, finalidade, publico_alvo)
+        values
+            (new.id, trim(m->>'nome_ong'), v_whats, nullif(trim(coalesce(m->>'rede_social','')),''),
+             v_doc, v_cep, v_estado, trim(m->>'cidade'), trim(m->>'bairro'),
+             trim(m->>'finalidade'), nullif(trim(coalesce(m->>'publico_alvo','')),''))
+        on conflict (id) do nothing;
     else
-        insert into public.profiles_usuarios (id, nome_completo, whatsapp, cpf, email, cep, estado, cidade, bairro)
-        values (
-            new.id,
-            coalesce(m->>'nome_completo', 'Cidadão sem nome'),
-            coalesce(m->>'whatsapp', ''),
-            coalesce(m->>'cpf', ''),
-            new.email,
-            coalesce(m->>'cep', '00000000'),
-            coalesce(m->>'estado', 'SP'),
-            coalesce(m->>'cidade', ''),
-            coalesce(m->>'bairro', '')
-        ) on conflict (id) do nothing;
+        if coalesce(trim(m->>'nome_completo'), '') = ''
+           or v_doc   !~ '^\d{11}$'
+           or v_whats !~ '^\+\d{10,13}$'
+           or v_cep   !~ '^\d{8}$'
+           or v_estado not in ('AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
+                               'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO')
+           or coalesce(trim(m->>'cidade'), '') = ''
+           or coalesce(trim(m->>'bairro'), '') = '' then
+            return new;  -- idem
+        end if;
+        insert into public.profiles_usuarios
+            (id, nome_completo, whatsapp, cpf, email, rede_social, cep, estado, cidade, bairro)
+        values
+            (new.id, trim(m->>'nome_completo'), v_whats, v_doc,
+             coalesce(new.email, ''), nullif(trim(coalesce(m->>'rede_social','')),''),
+             v_cep, v_estado, trim(m->>'cidade'), trim(m->>'bairro'))
+        on conflict (id) do nothing;
     end if;
     return new;
 end;
@@ -274,11 +306,69 @@ do $$ begin
   end if;
 end $$;
 
--- Observação acadêmica: como o INSERT acima usa valores placeholder quando o
--- client ainda não completou o formulário estendido, a tela de cadastro deve
--- fazer UPDATE no perfil logo após o signUp com os dados validados (CPF com
--- dígitos verificadores, CEP resolvido via ViaCEP etc.). Alternativa mais
--- robusta: submeter TODOS os campos no user_metadata do signUp — recomendado.
+-- Observação acadêmica: a v2 acima NUNCA derruba o signUp. Se os dados vierem
+-- incompletos (ex.: API pública chamada sem metadata), nenhum perfil é criado
+-- e a tela de cadastro completa o perfil via UPDATE logo após o signUp, com os
+-- dados validados (CPF com dígitos verificadores, CEP resolvido via ViaCEP).
+-- Como o frontend já envia TODOS os campos em user_metadata, o perfil nasce
+-- pronto na maioria absoluta dos casos.
+
+-- 4.5 RPC fn_completar_perfil — FORÇA-BRAÇO CONTRA "EMAIL RATE LIMIT EXCEEDED"
+-- Contexto real do projeto: quando o trigger não consegue criar o perfil
+-- (metadata ausente/inválido), o signUp voltava HTTP 500. A equipe repetia o
+-- cadastro, cada tentativa contava como novo envio de e-mail transacional e o
+-- plano free estourava o limite → "Email rate limit exceeded", mesmo quando a
+-- causa raiz era outra (ex.: provedores de teste como mailinator/gmail temporário
+-- banidos pela Supabase por abuso). Este RPC permite terminar o cadastro SEM
+-- novo envio de e-mail: autenticado via confirmSignup/link ou sessão residual,
+-- o app grava o perfil completo aqui e o fluxo segue normal.
+create or replace function public.fn_completar_perfil(p_tipo text, p_dados jsonb)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+    v_uid uuid := auth.uid();
+begin
+    if v_uid is null then
+        raise exception 'Não autenticado.' using errcode = '28000';
+    end if;
+    if p_tipo = 'ong' then
+        insert into public.profiles_ongs
+            (id, nome_ong, telefone, rede_social, documento, cep, estado, cidade, bairro, finalidade, publico_alvo)
+        values
+            (v_uid, trim(p_dados->>'nome_ong'), trim(p_dados->>'telefone'),
+             nullif(trim(coalesce(p_dados->>'rede_social','')),''), trim(p_dados->>'documento'),
+             trim(p_dados->>'cep'), upper(trim(p_dados->>'estado')), trim(p_dados->>'cidade'),
+             trim(p_dados->>'bairro'), trim(p_dados->>'finalidade'),
+             nullif(trim(coalesce(p_dados->>'publico_alvo','')),''))
+        on conflict (id) do update set
+            nome_ong = excluded.nome_ong, telefone = excluded.telefone,
+            rede_social = excluded.rede_social, documento = excluded.documento,
+            cep = excluded.cep, estado = excluded.estado, cidade = excluded.cidade,
+            bairro = excluded.bairro, finalidade = excluded.finalidade,
+            publico_alvo = coalesce(excluded.publico_alvo, profiles_ongs.publico_alvo);
+    else
+        insert into public.profiles_usuarios
+            (id, nome_completo, whatsapp, cpf, email, rede_social, cep, estado, cidade, bairro)
+        values
+            (v_uid, trim(p_dados->>'nome_completo'), trim(p_dados->>'whatsapp'),
+             trim(p_dados->>'cpf'), coalesce(p_dados->>'email', ''),
+             nullif(trim(coalesce(p_dados->>'rede_social','')),''), trim(p_dados->>'cep'),
+             upper(trim(p_dados->>'estado')), trim(p_dados->>'cidade'), trim(p_dados->>'bairro'))
+        on conflict (id) do update set
+            nome_completo = excluded.nome_completo, whatsapp = excluded.whatsapp,
+            cpf = excluded.cpf, email = excluded.email,
+            rede_social = excluded.rede_social, cep = excluded.cep,
+            estado = excluded.estado, cidade = excluded.cidade, bairro = excluded.bairro;
+    end if;
+end;
+$$;
+
+revoke all on function public.fn_completar_perfil(text, jsonb) from anon;
+grant execute on function public.fn_completar_perfil(text, jsonb) to authenticated;
+comment on function public.fn_completar_perfil(text, jsonb) is
+  'Grava/atualiza o perfil do próprio usuário autenticado (upsert seguro por auth.uid()).';
 
 -- ---------------------------------------------------------------------
 -- 5. ROW LEVEL SECURITY (RLS)

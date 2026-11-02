@@ -12,7 +12,7 @@ import {
   cpfValido, documentoValido, whatsappValido, cepValido, emailValido,
   forcaSenha, senhaForte, soDigitos,
 } from '../core/validators.js';
-import { cadastrarUsuario, cadastrarONG } from '../core/auth.js';
+import { cadastrarUsuario, cadastrarONG, signupBloqueadoAte } from '../core/auth.js';
 import { ligarAutocompleteCep } from '../core/cep-api.js';
 import { toast } from '../ui/toast.js';
 
@@ -83,6 +83,23 @@ function ligarMedidor(inputId, meterId) {
 }
 ligarMedidor('u_senha', 'u_pwMeter');
 ligarMedidor('o_senha', 'o_pwMeter');
+
+/* ---------- CONTADOR DE COOLDOWN ANTI-RATE-LIMIT ---------- */
+const elCooldown = document.getElementById('cadCooldown');
+function atualizarCooldown() {
+  const seg = signupBloqueadoAte();
+  if (!elCooldown) return;
+  if (seg > 0) {
+    elCooldown.textContent = `⏳ Aguarde ${seg}s antes de tentar criar outra conta (limite de e-mails do plano gratuito).`;
+    elCooldown.hidden = false;
+    [tabUsuario, tabOng].forEach((b) => b.disabled = true);
+  } else {
+    elCooldown.hidden = true;
+    [tabUsuario, tabOng].forEach((b) => b.disabled = false);
+  }
+}
+atualizarCooldown();
+setInterval(atualizarCooldown, 1000);
 
 /* ---------- AUTOCOMPLETE CEP → estado/cidade/bairro ---------- */
 function preencheEndereco(prefixo) {
@@ -157,6 +174,7 @@ formUsuario.addEventListener('submit', async (ev) => {
     mostrarOk('🌱 Conta criada! Enviamos uma confirmação para seu e-mail. Depois dela, faça login com seu CPF.');
     toast('Cadastro realizado com sucesso!', 'ok');
     formUsuario.reset();
+    atualizarCooldown();
     setTimeout(() => { location.href = 'login.html'; }, 5200);
   } catch (err) {
     mostrarErro(err.message);
@@ -207,6 +225,7 @@ formOng.addEventListener('submit', async (ev) => {
     mostrarOk('✅ ONG cadastrada! Confirme o e-mail institucional e depois entre com o CPF/CNPJ.');
     toast('Bem-vinda, comunidade! 🏡', 'ok');
     formOng.reset();
+    atualizarCooldown();
     setTimeout(() => { location.href = 'login.html?tipo=ong'; }, 5200);
   } catch (err) {
     mostrarErro(err.message);
