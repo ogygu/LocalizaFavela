@@ -5,16 +5,36 @@
      identificada pelo CPF no perfil (exigência do PIE).
    - Login "por documento": como o Supabase Auth autentica por email,
      resolvemos documento → email via RPC segura (fn_resolve_login),
-     criada no 02_Supabase_Database.sql (versão estendida na Fase 4).
-     Fallback: o usuário também pode digitar o próprio email.
+     criada no 02_Supabase_Database.sql. Fallback: email direto.
+   - Anti-"Email rate limit exceeded" (plano free): todos os dados vão no
+     user_metadata do signUp (o trigger fn_criar_perfil_na_signup v2 grava o
+     perfil atomicamente); cooldown local de 60 s entre cadastros; e a tradução
+     de erros orienta a ESPERAR em vez de insistir — cada tentativa conta como
+     novo e-mail transacional contra o limite do projeto.
    ===================================================================== */
 
 import { cpfValido, documentoValido, senhaForte, whatsappValido, cepValido, emailValido, soDigitos } from './validators.js';
 
 const sb = window.LF_SUPABASE;
 
+/* ---------- COOLDOWN ANTI-RATE-LIMIT (sessionStorage) ---------- */
+const COOLDOWN_KEY = 'lf_ultimo_signup_ts';
+const COOLDOWN_MS  = 60000; // 1 cadastro por minuto por navegador
+
+export function signupBloqueadoAte() {
+  const t = Number(sessionStorage.getItem(COOLDOWN_KEY) || 0);
+  const restante = t + COOLDOWN_MS - Date.now();
+  return restante > 0 ? Math.ceil(restante / 1000) : 0;
+}
+function marcarSignupFeito() {
+  sessionStorage.setItem(COOLDOWN_KEY, String(Date.now()));
+}
+
 /** Cadastro de USUÁRIO COMUM. payload vem do formulário da página. */
 export async function cadastrarUsuario({ nome, whatsapp, cpf, email, redeSocial, cep, estado, cidade, bairro, senha }) { // eslint-disable-line no-unused-vars
+  const espera = signupBloqueadoAte();
+  if (espera) throw new Error(`Aguarde ${espera}s antes de tentar de novo (proteção anti-spam do e-mail).`);
+
   if (!nome || nome.trim().split(/\s+/).length < 2) throw new Error('Informe seu nome completo.');
   if (!whatsappValido(whatsapp)) throw new Error('WhatsApp inválido. Use DDD + número.');
   if (!cpfValido(cpf)) throw new Error('CPF inválido (verifique os dígitos).');
@@ -40,11 +60,15 @@ export async function cadastrarUsuario({ nome, whatsapp, cpf, email, redeSocial,
     },
   });
   if (error) throw new Error(traduzErroAuth(error));
+  marcarSignupFeito();
   return true;
 }
 
 /** Cadastro de ONG. documento = CPF ou CNPJ. email institucional é obrigatório. */
 export async function cadastrarONG({ nomeOng, telefone, email, redeSocial, documento, cep, estado, cidade, bairro, finalidade, publicoAlvo, senha }) { // eslint-disable-line no-unused-vars
+  const espera = signupBloqueadoAte();
+  if (espera) throw new Error(`Aguarde ${espera}s antes de tentar de novo (proteção anti-spam do e-mail).`);
+
   if (!nomeOng || nomeOng.trim().length < 3) throw new Error('Informe o nome da ONG.');
   if (!whatsappValido(telefone)) throw new Error('Telefone inválido.');
   if (!documentoValido(documento)) throw new Error('CPF/CNPJ inválido.');
@@ -78,6 +102,7 @@ export async function cadastrarONG({ nomeOng, telefone, email, redeSocial, docum
     },
   });
   if (error) throw new Error(traduzErroAuth(error));
+  marcarSignupFeito();
   return true;
 }
 
@@ -136,6 +161,8 @@ export async function sessaoAtual() {
 
 function traduzErroAuth(error) {
   const msg = (error.message || '').toLowerCase();
+  if (msg.includes('rate limit')) return 'Limite de cadastros por e-mail atingido no Supabase (plano free ≈ 2/hora). NÃO tente de novo agora: aguarde ~1 hora. Dica: desative "Confirm email" em Authentication → Providers para testar sem limite.';
+  if (msg.includes('banned') || msg.includes('blocklist') || msg.includes('not allowed')) return 'Este provedor de e-mail foi bloqueado pela Supabase (lista anti-spam). Use um e-mail pessoal real (Gmail/Outlook/iCloud) — evite mailinator/temporários.';
   if (msg.includes('already registered') || msg.includes('already exists')) return 'Este cadastro já existe. Tente entrar.';
   if (msg.includes('invalid login credentials')) return 'Documento/e-mail ou senha incorretos.';
   if (msg.includes('confirm')) return 'Confirme seu e-mail antes de entrar (checar caixa de entrada).';

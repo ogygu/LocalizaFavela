@@ -13,7 +13,10 @@
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
   <link rel="stylesheet" href="../css/pages.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Pin fixo: a build mais nova do supabase-js injeta um token de captcha que,
+     sem provider de captcha configurado no projeto, faz o signUp falhar com erros
+     confusos ("rate limit"/500). 2.54.0 é a última UMD estável e testada. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.54.0/dist/umd/supabase.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
